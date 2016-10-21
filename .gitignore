@@ -20,6 +20,7 @@ buildNumber.properties
 # My stuff:
 .idea/
 *.iml
+*.ipr
 
 # User-specific stuff:
 .idea/workspace.xml
