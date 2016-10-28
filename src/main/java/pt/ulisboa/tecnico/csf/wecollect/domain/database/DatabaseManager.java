@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain.database;
 
 import pt.ulisboa.tecnico.csf.wecollect.domain.Manager;
+import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -43,7 +44,7 @@ public class DatabaseManager {
         Connection connection = connectToDB();
     }
 
-    public void commitNewLogs(){
+    public void commitNewLogs(Pack pack){
         Connection connection = connectToDB();
 
     }

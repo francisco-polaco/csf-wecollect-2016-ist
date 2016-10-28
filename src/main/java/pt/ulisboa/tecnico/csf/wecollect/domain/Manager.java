@@ -1,6 +1,12 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
+import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
+import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToParseXMLException;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToRunPythonException;
 
@@ -8,10 +14,11 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+import java.io.*;
 import java.util.ArrayList;
 
 /**
@@ -33,28 +40,24 @@ public class Manager {
     private void processEvtx(String filepath) throws ImpossibleToRunPythonException{
         String line;
         Process p;
+
         try {
-           // p = Runtime.getRuntime().exec("extras/evtxdump.pyc " + filepath + " > " + CURRENT_LOG_XML);
-            p = Runtime.getRuntime().exec("extras/evtxdump.pyc ");
+            System.err.println(filepath);
+            p = Runtime.getRuntime().exec("extras/evtxdump.pyc " + filepath);
         } catch (IOException e) {
             e.printStackTrace();
             throw new ImpossibleToRunPythonException(e.getMessage());
         }
-        BufferedReader inError = new BufferedReader(
-                new InputStreamReader(p.getErrorStream()));
-        BufferedReader inOut = new BufferedReader(
-                new InputStreamReader(p.getInputStream()));
-        try {
-            System.out.println("ERROR:");
-            while ((line = inError.readLine()) != null) {
-                System.out.println(line);
-            }
-            inError.close();
-            System.out.println("OUT:");
+
+        try(BufferedReader inOut = new BufferedReader(
+                new InputStreamReader(p.getInputStream()))) {
+
+            PrintWriter pw = new PrintWriter(new FileWriter(CURRENT_LOG_XML));
             while ((line = inOut.readLine()) != null) {
-                System.out.println(line);
+                pw.write(line + "\n");
             }
-            inOut.close();
+            pw.close();
+
         }catch (IOException e){
             e.printStackTrace();
         }
@@ -105,9 +108,26 @@ public class Manager {
 
     public void process(String filepath)  {
         processEvtx(filepath);
-        getClassesFromXML();
-        DatabaseManager.getInstance().commitNewLogs();
+//        try {
+//            getPackReady();
+//        } catch (XPathExpressionException e) {
+//            e.printStackTrace();
+//        }
+        /*getClassesFromXML();
+        DatabaseManager.getInstance().commitNewLogs();*/
 
 
+    }
+
+    private void getPackReady() throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/events/event/Data[Name='Key']";
+        InputSource inputSource = new InputSource(CURRENT_LOG_XML);
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+        if(nodes.getLength() > 0){
+            Node n = nodes.item(0);
+            System.out.println("OLA: " + n.toString());
+        }
+        //<Data Name="Key"
     }
 }

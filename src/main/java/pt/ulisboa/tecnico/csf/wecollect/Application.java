@@ -9,7 +9,13 @@ import pt.ulisboa.tecnico.csf.wecollect.service.ProcessEvtxService;
 public class Application {
 
     public static void main(String[] args){
-        System.out.println("Hello CSF!");
-        new ProcessEvtxService(null).execute();
+
+        if(args.length != 1){
+            System.err.println("Error running WECollect.");
+            return;
+        }
+
+        System.out.println(args[0]);
+        new ProcessEvtxService(args[0]).execute();
     }
 }

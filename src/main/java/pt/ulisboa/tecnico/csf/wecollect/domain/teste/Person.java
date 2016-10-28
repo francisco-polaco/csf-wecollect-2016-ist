@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.csf.wecollect.domain;
+package pt.ulisboa.tecnico.csf.wecollect.domain.teste;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
