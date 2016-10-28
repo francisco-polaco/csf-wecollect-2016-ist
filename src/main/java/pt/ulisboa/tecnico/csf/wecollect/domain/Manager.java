@@ -56,6 +56,9 @@ public class Manager {
 
                 if(!line.contains("&lt;") || !line.contains("&gt;") || !line.contains("&apos;") || !line.contains("%apos;"))
                     line = line.replaceAll("&", "");
+
+                if(line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
+                    line = line.replaceAll("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "");
                 pw.write(line + "\n");
             }
             pw.close();
@@ -112,7 +115,7 @@ public class Manager {
         processEvtx(filepath);
         try {
             getPackReady();
-        } catch (IOException e) {
+        } catch (IOException | XPathExpressionException e) {
             e.printStackTrace();
         }
         /*getClassesFromXML();
@@ -121,7 +124,7 @@ public class Manager {
 
     }
 
-    private void getPackReady() throws IOException {
+    private void getPackReady() throws IOException, XPathExpressionException {
         Pack p = new Pack();
 
 
@@ -147,7 +150,7 @@ public class Manager {
         String responseStatus = xpath.evaluate("/*//*[local-name()='ResponseStatus']/text()", document);
         System.out.println("-> " + responseStatus);
 
-
+*/
 
 
 
@@ -164,7 +167,7 @@ public class Manager {
                 System.out.println("OLA: " + n.toString());
             }
         }
-        //<Data Name="Key"*/
+        //<Data Name="Key"
     }
 
 
