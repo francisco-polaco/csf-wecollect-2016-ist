@@ -1,10 +1,9 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain;
 
-import org.w3c.dom.Document;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToParseXMLException;
@@ -54,6 +53,9 @@ public class Manager {
 
             PrintWriter pw = new PrintWriter(new FileWriter(CURRENT_LOG_XML));
             while ((line = inOut.readLine()) != null) {
+
+                if(!line.contains("&lt;") || !line.contains("&gt;") || !line.contains("&apos;") || !line.contains("%apos;"))
+                    line = line.replaceAll("&", "");
                 pw.write(line + "\n");
             }
             pw.close();
@@ -108,26 +110,97 @@ public class Manager {
 
     public void process(String filepath)  {
         processEvtx(filepath);
-//        try {
-//            getPackReady();
-//        } catch (XPathExpressionException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            getPackReady();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         /*getClassesFromXML();
         DatabaseManager.getInstance().commitNewLogs();*/
 
 
     }
 
-    private void getPackReady() throws XPathExpressionException {
+    private void getPackReady() throws IOException {
+        Pack p = new Pack();
+
+
+        String computerId = getComputerId();
+        Computer c = new Computer();
+        c.setSid(computerId);
+        System.out.println(computerId);
+
+        String computerName = getComputerName();
+        c.setName(computerName);
+        System.out.println(computerName);
+
+        p.setComputer(c);
+
+
+
+
+
+
+
+/*
         XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "/events/event/Data[Name='Key']";
+        String responseStatus = xpath.evaluate("/*//*[local-name()='ResponseStatus']/text()", document);
+        System.out.println("-> " + responseStatus);
+
+
+
+
+
+
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "//Version";
         InputSource inputSource = new InputSource(CURRENT_LOG_XML);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+        System.out.println("BATATA");
         if(nodes.getLength() > 0){
-            Node n = nodes.item(0);
-            System.out.println("OLA: " + n.toString());
+            System.out.println("Doce");
+            for (int i = 0 ; i < nodes.getLength() ; i++) {
+                Node n = nodes.item(i);
+                System.out.println("OLA: " + n.toString());
+            }
         }
-        //<Data Name="Key"
+        //<Data Name="Key"*/
+    }
+
+
+    /* This way of doing stuff is just idiot, we need to implement xpath */
+
+    private String getComputerId() throws IOException {
+        // plz that this xml parse works
+        String computerId = "";
+        try (BufferedReader br = new BufferedReader(new FileReader(CURRENT_LOG_XML))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                // process the line.
+                if(line.startsWith("<Data Name=\"Key\">")){
+                    String[] split = line.split("-");
+                    computerId = split[3] + "-" + split[4] + "-" + split[5] + "-" + split[6];
+
+                }
+            }
+        }
+        return computerId;
+    }
+
+    private String getComputerName() throws IOException {
+        // plz that this xml parse works
+        String computerName = "";
+        try (BufferedReader br = new BufferedReader(new FileReader(CURRENT_LOG_XML))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                // process the line.
+                if(line.startsWith("<Computer>")){
+                    int index = line.indexOf("<", 10);
+                    computerName = line.substring(10, index);
+
+                }
+            }
+        }
+        return computerName;
     }
 }

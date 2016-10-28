@@ -8,6 +8,10 @@ import java.util.ArrayList;
  * Created by xxlxpto on 28-10-2016.
  */
 public class Pack {
+    public void setComputer(Computer computer) {
+        this.computer = computer;
+    }
+
     private Computer computer;
     private ArrayList<User> users = new ArrayList<>();
     private ArrayList<Event> events = new ArrayList<>();
