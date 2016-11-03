@@ -15,7 +15,6 @@ public class Application {
             return;
         }
 
-        System.out.println(args[0]);
         new ProcessEvtxService(args[0]).execute();
     }
 }

@@ -6,6 +6,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
+import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
+import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToCreateWorkingDirException;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToParseXMLException;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToRunPythonException;
 
@@ -18,7 +20,11 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.*;
+import java.lang.reflect.Array;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by xxlxpto on 21-10-2016.
@@ -27,6 +33,8 @@ public class Manager {
 
     private static final String CURRENT_LOG_XML = "currentLog.xml";
     private static final String CURRENT_LOG_XML_TEST = "/home/xxlxpto/person.xml";
+    private static final String WORKING_DIR = "wdir";
+
     private static Manager mInstance;
 
     public static Manager getInstance(){
@@ -36,37 +44,90 @@ public class Manager {
         return mInstance;
     }
 
-    private void processEvtx(String filepath) throws ImpossibleToRunPythonException{
-        String line;
-        Process p;
-
-        try {
-            System.err.println(filepath);
-            p = Runtime.getRuntime().exec("extras/evtxdump.pyc " + filepath);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new ImpossibleToRunPythonException(e.getMessage());
+    private void processEvtx(String dirpath) throws ImpossibleToRunPythonException{
+        System.out.println("Starting to process EVTX.");
+        if(dirpath.endsWith("/")){ // cleaning the last slash
+            System.out.println("Cleaning path");
+            dirpath = dirpath.substring(0, dirpath.length() - 1);
         }
 
-        try(BufferedReader inOut = new BufferedReader(
-                new InputStreamReader(p.getInputStream()))) {
+        System.out.println("Getting every filename.");
+        ArrayList<File> files = getListOfFilenames(dirpath);
 
-            PrintWriter pw = new PrintWriter(new FileWriter(CURRENT_LOG_XML));
-            while ((line = inOut.readLine()) != null) {
+        System.out.println("Checking working folder.");
+        checkWorkingFolder();
 
-                if(!line.contains("&lt;") || !line.contains("&gt;") || !line.contains("&apos;") || !line.contains("%apos;"))
-                    line = line.replaceAll("&", "");
-
-                if(line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
-                    line = line.replaceAll("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "");
-                pw.write(line + "\n");
+        for (File file: files) {
+            Process p;
+            try {
+                System.out.println("Processing file: " + dirpath + "/" + file.getName());
+                p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + dirpath + "/" + file.getName());
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new ImpossibleToRunPythonException(e.getMessage());
             }
-            pw.close();
 
-        }catch (IOException e){
-            e.printStackTrace();
+            try(BufferedReader inOut = new BufferedReader(
+                    new InputStreamReader(p.getInputStream()))) {
+                String line;
+                String filenameXml = file.getName().replace(".evtx", ".xml");
+                PrintWriter pw = new PrintWriter(new FileWriter(WORKING_DIR + "/" + filenameXml));
+
+                while ((line = inOut.readLine()) != null) {
+
+                    if(!line.contains("&lt;") || !line.contains("&gt;") || !line.contains("&apos;") || !line.contains("%apos;"))
+                        line = line.replaceAll("&", "");
+
+                    if(line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
+                        line = line.replaceAll("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "");
+
+                    String xmlIdent = xmlIdent(line);
+                    pw.write(xmlIdent + line + "\n");
+                }
+
+                pw.close();
+
+            }catch (IOException e){
+                e.printStackTrace();
+            }
         }
+    }
 
+    private String xmlIdent(String line) {
+        String xmlIdent = "";
+        if(!(line.startsWith("<Events>") || line.startsWith("</Events>") || line.startsWith("<?xml")) ){
+            xmlIdent += "\t";
+            if(!(line.startsWith("<Event >") || line.startsWith("</Event>"))){
+                xmlIdent += "\t";
+                if(line.startsWith("<Data ")){
+                    xmlIdent += "\t";
+                }
+            }
+        }
+        return xmlIdent;
+    }
+
+    private void checkWorkingFolder() {
+        if(!(new File(WORKING_DIR).exists())) {
+            if (!(new File(WORKING_DIR).mkdir())) {
+                throw new ImpossibleToCreateWorkingDirException();
+            }
+        }
+    }
+
+    private ArrayList<File> getListOfFilenames(String dirpath) {
+        File dir = new File(dirpath);
+        if(dir.listFiles() == null){
+            throw new DirectoryWithoutFilesException(dirpath);
+        }
+        ArrayList<File> files = new ArrayList<>(Arrays.asList(dir.listFiles()));
+
+        for (File f : files) {
+            if(f.isDirectory() || f.getName().equals(".") || f.getName().equals("..")){
+                files.remove(f);
+            }
+        }
+        return files;
     }
 
     private void getClassesFromXML(){
@@ -113,11 +174,11 @@ public class Manager {
 
     public void process(String filepath)  {
         processEvtx(filepath);
-        try {
+        /*try {
             getPackReady();
         } catch (IOException | XPathExpressionException e) {
             e.printStackTrace();
-        }
+        }*/
         /*getClassesFromXML();
         DatabaseManager.getInstance().commitNewLogs();*/
 
@@ -156,16 +217,18 @@ public class Manager {
 
 
         XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "//Version";
+        String expression = "//Event";
         InputSource inputSource = new InputSource(CURRENT_LOG_XML);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
         System.out.println("BATATA");
         if(nodes.getLength() > 0){
             System.out.println("Doce");
-            for (int i = 0 ; i < nodes.getLength() ; i++) {
+            System.out.println(nodes.item(0).toString());
+            System.out.println("Tamanho da lista: " + nodes.getLength());
+            /*for (int i = 0 ; i < nodes.getLength() ; i++) {
                 Node n = nodes.item(i);
                 System.out.println("OLA: " + n.toString());
-            }
+            }*/
         }
         //<Data Name="Key"
     }
