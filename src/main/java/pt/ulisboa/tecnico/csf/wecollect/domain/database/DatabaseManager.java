@@ -9,6 +9,7 @@ import javax.xml.crypto.Data;
 import java.lang.reflect.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Properties;
 
 /**
  * Created by xxlxpto on 21-10-2016.
@@ -31,16 +32,22 @@ public class DatabaseManager {
     }
 
     private Connection connectToDB(){
-        String url = "jdbc:mysql://localhost:3306/wecollect";
-        String username = "root";
-        String password = "rootroot";
+        Properties connectionProps = new Properties();
+        connectionProps.put("user", "root");
+        connectionProps.put("password", "rootroot");
+
+        /*try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }*/
 
         System.out.println("Connecting database...");
 
         Connection connection;
 
         try {
-            connection = DriverManager.getConnection(url, username, password);
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/wecollect", connectionProps);
             System.out.println("Database connected!");
         } catch (SQLException e) {
             throw new IllegalStateException("Cannot connect the database!", e);
@@ -70,16 +77,11 @@ public class DatabaseManager {
             pstmt.setString(1, computer.getName());
             pstmt.setString(2, computer.getSid());
             pstmt.executeUpdate();
-            con.commit();
         } catch (SQLException e) {
             e.printStackTrace();
-            try {
-                con.rollback();
-            } catch (SQLException e1) {
-                e1.printStackTrace();
-            }
         } finally {
             try {
+                System.out.println("Closing connection!");
                 con.close();
             } catch (SQLException e) {
                 e.printStackTrace();
