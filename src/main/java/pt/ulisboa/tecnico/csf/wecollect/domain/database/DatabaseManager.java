@@ -116,20 +116,29 @@ public class DatabaseManager {
             }
 
         }
-        try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM users;")) {
-            ResultSet resultSet = pstmt.executeQuery();
-            int i = 0;
-            while(resultSet.next()) {
-                userArrayList.get(i++).setId(resultSet.getInt("id"));
+        for(User u : userArrayList) {
+            try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM users WHERE computer_id=? AND relative_id=? AND username=?;")) {
+                System.out.println(computer.getId());
+                pstmt.setInt(1, computer.getId());
+                pstmt.setString(2, u.getUserSid());
+                pstmt.setString(3, u.getUsername());
+                ResultSet resultSet = pstmt.executeQuery();
+                if(resultSet.next()) {
+                    u.setId(resultSet.getInt("id"));
+                }
+                resultSet.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-            resultSet.close();
-        }catch (SQLException e) {
-            e.printStackTrace();
+
         }
 
         for(User u : userArrayList) {
             try (PreparedStatement pstmt = con.prepareStatement("UPDATE users SET created_by=? WHERE id=?;")) {
-                pstmt.setInt(1, u.getCreatedById());
+                if(u.getCreatedById() == null)
+                    pstmt.setNull(1, Types.INTEGER);
+                else
+                    pstmt.setInt(1, u.getCreatedById());
                 pstmt.setInt(2, u.getId());
                 pstmt.executeUpdate();
             } catch (SQLException e) {

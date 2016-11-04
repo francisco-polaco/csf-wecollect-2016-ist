@@ -55,9 +55,9 @@ public class User {
         else return createdBy.getUserSid();
     }
 
-    public int getCreatedById(){
+    public Integer getCreatedById(){
         if(createdBy != null) return createdBy.getId();
-        else return -1; // vai ser giro
+        else return null; // vai ser giro
     }
 
     public String getUsername() {
