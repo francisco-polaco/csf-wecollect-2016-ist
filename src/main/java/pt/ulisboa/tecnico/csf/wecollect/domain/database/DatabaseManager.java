@@ -116,6 +116,26 @@ public class DatabaseManager {
             }
 
         }
+        try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM users;")) {
+            ResultSet resultSet = pstmt.executeQuery();
+            int i = 0;
+            while(resultSet.next()) {
+                userArrayList.get(i++).setId(resultSet.getInt("id"));
+            }
+            resultSet.close();
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        for(User u : userArrayList) {
+            try (PreparedStatement pstmt = con.prepareStatement("UPDATE users SET created_by=? WHERE id=?;")) {
+                pstmt.setInt(1, u.getCreatedById());
+                pstmt.setInt(2, u.getId());
+                pstmt.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
         try {
             con.close();
         } catch (SQLException e) {

@@ -4,6 +4,14 @@ package pt.ulisboa.tecnico.csf.wecollect.domain;
  * Created by xxlxpto on 28-10-2016.
  */
 public class User {
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
     private int id;
 
     private String userSid;
@@ -45,6 +53,11 @@ public class User {
     public String getCreatedBySid(){
         if(createdBy == null)   return createdBySid;
         else return createdBy.getUserSid();
+    }
+
+    public int getCreatedById(){
+        if(createdBy != null) return createdBy.getId();
+        else return -1; // vai ser giro
     }
 
     public String getUsername() {
