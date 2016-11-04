@@ -203,6 +203,8 @@ public class Manager {
         ArrayList<User> userArrayList = getUsers();
         p.setUsers(userArrayList);
 
+        DatabaseManager.getInstance().commitUsers(p);
+
         for (User u: userArrayList) {
             System.out.println(u);
         }
@@ -233,20 +235,37 @@ public class Manager {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserName")) {
+                    if(data.item(j).getTextContent().equals("defaultuser0")) {
+                        // We shall not reveal god to the mundane people
+                        toSkip = true;
+                        break;
+                    }
                     username = data.item(j).getTextContent();
                 }
                 else if (attributes.item(0).getNodeValue().equals("TargetSid")) {
-                    sid = data.item(j).getTextContent();
+                    int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
+                    sid = data.item(j).getTextContent().substring(indexOfLastDash + 1);
                 }
                 else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
-                    for (User u: userArrayList) {
-                        if(u.getUserSid().equals(data.item(j).getTextContent())){
-                            userArrayList.add(new User(sid, username, u));
-                            toSkip = true;
-                            break;
+                    int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
+
+                    if(data.item(j).getTextContent().substring(indexOfLastDash + 1).equals("18")){
+                        // God created this account, so with will not reveal that god exists
+                        createdBySid = null;
+                        createdByUname = null;
+                        break;
+                    }else {
+
+                        for (User u : userArrayList) {
+                            if (u.getUserSid().equals(data.item(j).getTextContent().substring(indexOfLastDash + 1))) {
+                                userArrayList.add(new User(sid, username, u));
+                                toSkip = true;
+                                break;
+                            }
                         }
+
+                        createdBySid = data.item(j).getTextContent().substring(indexOfLastDash + 1);
                     }
-                    createdBySid = data.item(j).getTextContent();
                 }
                 else if (attributes.item(0).getNodeValue().equals("SubjectUserName")) {
                     createdByUname = data.item(j).getTextContent();

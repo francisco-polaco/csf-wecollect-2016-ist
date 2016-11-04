@@ -79,7 +79,16 @@ public class DatabaseManager {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
+        }
+        try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM computers WHERE name=? AND sid=?;")) {
+            pstmt.setString(1, computer.getName());
+            pstmt.setString(2, computer.getSid());
+            ResultSet resultSet = pstmt.executeQuery();
+            if(resultSet.next()) computer.setId(resultSet.getInt("id"));
+            resultSet.close();
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
             try {
                 System.out.println("Closing connection!");
                 con.close();
@@ -95,40 +104,23 @@ public class DatabaseManager {
         ArrayList<User> userArrayList = pack.getUsers();
         for(User u : userArrayList){
             try (PreparedStatement pstmt =
-                         con.prepareStatement("INSERT INTO users (computer_id, user_id, username, created_by) VALUES (?, ?, ?, ?);")) {
-                pstmt.setString(1, computer.getSid());
+                         con.prepareStatement("INSERT INTO users (computer_id, relative_id, username) VALUES (?, ?, ?);")) {
+                pstmt.setInt(1, computer.getId());
                 pstmt.setString(2, u.getUserSid());
                 pstmt.setString(3, u.getUsername());
-                pstmt.setString(4, u.getCreatedBySid());
+               // pstmt.setString(4, u.getCreatedBySid());
                 pstmt.executeUpdate();
             } catch (SQLException e) {
-                try {
-                    con.rollback();
-                } catch (SQLException e1) {
-                    e1.printStackTrace();
-                }
+                e.printStackTrace();
                 return;
-            }finally {
-                try {
-                    con.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
             }
 
         }
         try {
-
-            con.commit();
+            con.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        finally {
-            try {
-                con.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        }
+
     }
 }
