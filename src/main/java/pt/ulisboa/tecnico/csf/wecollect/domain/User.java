@@ -5,7 +5,51 @@ package pt.ulisboa.tecnico.csf.wecollect.domain;
  */
 public class User {
     private int id;
-    private int userId;
+
+    public String getUserSid() {
+        return userSid;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    private String userSid;
     private String username;
-    private int createdBy;
+    private User createdBy;
+    private String createdBySid;
+    private String createdByName;
+
+    public User(String userSid, String username, String createdBySid, String createdByName) {
+        this.userSid = userSid;
+        this.username = username;
+        this.createdBySid = createdBySid;
+        this.createdByName = createdByName;
+    }
+
+    public User(String userSid, String username, User createdBy) {
+        this.userSid = userSid;
+        this.username = username;
+        this.createdBy = createdBy;
+    }
+
+
+    @Override
+    public String toString() {
+        if(createdBy == null)
+            return "User{" +
+                    "id=" + id +
+                    ", userSid='" + userSid + '\'' +
+                    ", username='" + username + '\'' +
+                    ", createdBySid='" + createdBySid + '\'' +
+                    ", createdByName='" + createdByName + '\'' +
+                    '}';
+        else
+            return "User{" +
+                    "id=" + id +
+                    ", userSid='" + userSid + '\'' +
+                    ", username='" + username + '\'' +
+                    ", " + createdBy.toString() +
+                    '}';
+    }
 }

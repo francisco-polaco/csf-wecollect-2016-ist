@@ -1,6 +1,6 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -20,9 +20,6 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.*;
-import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -123,7 +120,8 @@ public class Manager {
         ArrayList<File> files = new ArrayList<>(Arrays.asList(dir.listFiles()));
 
         for (File f : files) {
-            if(f.isDirectory() || f.getName().equals(".") || f.getName().equals("..")){
+            String filename = f.getName();
+            if(f.isDirectory() || filename.equals(".") || filename.equals("..") ){
                 files.remove(f);
             }
         }
@@ -173,12 +171,12 @@ public class Manager {
     }
 
     public void process(String filepath)  {
-        processEvtx(filepath);
-        /*try {
+        //processEvtx(filepath);
+        try {
             getPackReady();
         } catch (IOException | XPathExpressionException e) {
             e.printStackTrace();
-        }*/
+        }
         /*getClassesFromXML();
         DatabaseManager.getInstance().commitNewLogs();*/
 
@@ -189,84 +187,103 @@ public class Manager {
         Pack p = new Pack();
 
 
-        String computerId = getComputerId();
         Computer c = new Computer();
-        c.setSid(computerId);
-        System.out.println(computerId);
 
-        String computerName = getComputerName();
-        c.setName(computerName);
-        System.out.println(computerName);
+        ArrayList<String> computerDetails = getComputerDetails();
+        c.setSid(computerDetails.get(1));
+        System.out.println(computerDetails.get(1));
+        c.setName(computerDetails.get(0));
+        System.out.println(computerDetails.get(0));
 
         p.setComputer(c);
 
+        ArrayList<User> userArrayList = getUsers();
+        p.setUsers(userArrayList);
 
-
-
-
-
-
-/*
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String responseStatus = xpath.evaluate("/*//*[local-name()='ResponseStatus']/text()", document);
-        System.out.println("-> " + responseStatus);
-
-*/
-
-
-
-
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "//Event";
-        InputSource inputSource = new InputSource(CURRENT_LOG_XML);
-        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
-        System.out.println("BATATA");
-        if(nodes.getLength() > 0){
-            System.out.println("Doce");
-            System.out.println(nodes.item(0).toString());
-            System.out.println("Tamanho da lista: " + nodes.getLength());
-            /*for (int i = 0 ; i < nodes.getLength() ; i++) {
-                Node n = nodes.item(i);
-                System.out.println("OLA: " + n.toString());
-            }*/
+        for (User u: userArrayList) {
+            System.out.println(u);
         }
         //<Data Name="Key"
     }
 
+    private ArrayList<User> getUsers() throws XPathExpressionException {
+        ArrayList<User> userArrayList = new ArrayList<>();
 
-    /* This way of doing stuff is just idiot, we need to implement xpath */
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"4720\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
-    private String getComputerId() throws IOException {
-        // plz that this xml parse works
-        String computerId = "";
-        try (BufferedReader br = new BufferedReader(new FileReader(CURRENT_LOG_XML))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                // process the line.
-                if(line.startsWith("<Data Name=\"Key\">")){
-                    String[] split = line.split("-");
-                    computerId = split[3] + "-" + split[4] + "-" + split[5] + "-" + split[6];
+        for(int i = 0; i < nodes.getLength() ; i++){
+            String username = "";
+            String sid = "";
+            String createdBySid = "";
+            String createdByUname = "";
+            boolean toSkip = false;
 
+
+            // TAG Event
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            // TAG EventData
+            NodeList data = childNodes.item(2).getChildNodes();
+            for(int j = 0 ; j < data.getLength() ; j+=2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                if (attributes.item(0).getNodeValue().equals("TargetUserName")) {
+                    username = data.item(j).getTextContent();
                 }
+                else if (attributes.item(0).getNodeValue().equals("TargetSid")) {
+                    sid = data.item(j).getTextContent();
+                }
+                else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                    for (User u: userArrayList) {
+                        if(u.getUserSid().equals(data.item(j).getTextContent())){
+                            userArrayList.add(new User(sid, username, u));
+                            toSkip = true;
+                            break;
+                        }
+                    }
+                    createdBySid = data.item(j).getTextContent();
+                }
+                else if (attributes.item(0).getNodeValue().equals("SubjectUserName")) {
+                    createdByUname = data.item(j).getTextContent();
+                }
+
             }
+            if(!toSkip) userArrayList.add(new User(sid, username, createdBySid, createdByUname));
+
         }
-        return computerId;
+        return userArrayList;
     }
 
-    private String getComputerName() throws IOException {
+
+    /**
+     * @return Arraylist with, in index 0, the computer's name and, in index 1, Computer id
+     * @throws IOException
+     */
+    private ArrayList<String> getComputerDetails() throws IOException {
         // plz that this xml parse works
-        String computerName = "";
-        try (BufferedReader br = new BufferedReader(new FileReader(CURRENT_LOG_XML))) {
+        /* This way of doing stuff is just idiot, we need to implement xpath */
+        /* I am starting to believe that xpath is just horrible */
+        ArrayList<String> res = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(WORKING_DIR + "/user.xml"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 // process the line.
+                line = line.replace("\t", "");
                 if(line.startsWith("<Computer>")){
                     int index = line.indexOf("<", 10);
-                    computerName = line.substring(10, index);
+                    res.add(0, line.substring(10, index));
 
                 }
+                else if(line.startsWith("<Data Name=\"Key\">")){
+                    String[] split = line.split("-");
+                    res.add(1, split[3] + "-" + split[4] + "-" + split[5] + "-" + split[6]);
+                }
+
+                if(res.size() == 2) break; // all info collected
             }
         }
-        return computerName;
+        return res;
     }
 }

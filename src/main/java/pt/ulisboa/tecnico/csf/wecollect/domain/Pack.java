@@ -13,6 +13,11 @@ public class Pack {
     }
 
     private Computer computer;
+
+    public void setUsers(ArrayList<User> users) {
+        this.users = users;
+    }
+
     private ArrayList<User> users = new ArrayList<>();
     private ArrayList<Event> events = new ArrayList<>();
 
