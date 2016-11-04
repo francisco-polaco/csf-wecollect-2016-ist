@@ -70,11 +70,11 @@ public class DatabaseManager {
 
     }
 
-
     public void commitComputer(Pack pack) throws RegistryAlreadyExistsException {
         Connection con = connectToDB();
         Computer computer = pack.getComputer();
 
+        // Verificar se este computador ja foi loggado na DB
         try (PreparedStatement pstmt = con.prepareStatement("SELECT name, sid FROM computers;")) {
             ResultSet resultSet = pstmt.executeQuery();
             while(resultSet.next()){
@@ -90,6 +90,7 @@ public class DatabaseManager {
             e.printStackTrace();
         }
 
+        // Inserir dados do computador na DB
         try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO computers (name, sid) VALUES (?, ?);")) {
             pstmt.setString(1, computer.getName());
             pstmt.setString(2, computer.getSid());
@@ -97,6 +98,8 @@ public class DatabaseManager {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        // Obter o id atribuido pela DB para atribuir no objecto JAVA
         try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM computers WHERE name=? AND sid=?;")) {
             pstmt.setString(1, computer.getName());
             pstmt.setString(2, computer.getSid());
