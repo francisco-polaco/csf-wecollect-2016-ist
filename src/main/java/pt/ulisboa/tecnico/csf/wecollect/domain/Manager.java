@@ -4,6 +4,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
 import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
@@ -196,6 +197,8 @@ public class Manager {
         System.out.println(computerDetails.get(0));
 
         p.setComputer(c);
+
+        DatabaseManager.getInstance().commitComputer(p);
 
         ArrayList<User> userArrayList = getUsers();
         p.setUsers(userArrayList);

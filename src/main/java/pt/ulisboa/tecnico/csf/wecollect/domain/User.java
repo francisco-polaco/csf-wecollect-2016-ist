@@ -6,14 +6,6 @@ package pt.ulisboa.tecnico.csf.wecollect.domain;
 public class User {
     private int id;
 
-    public String getUserSid() {
-        return userSid;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
     private String userSid;
     private String username;
     private User createdBy;
@@ -26,14 +18,11 @@ public class User {
         this.createdBySid = createdBySid;
         this.createdByName = createdByName;
     }
-
     public User(String userSid, String username, User createdBy) {
         this.userSid = userSid;
         this.username = username;
         this.createdBy = createdBy;
     }
-
-
     @Override
     public String toString() {
         if(createdBy == null)
@@ -51,5 +40,19 @@ public class User {
                     ", username='" + username + '\'' +
                     ", " + createdBy.toString() +
                     '}';
+    }
+
+    public String getCreatedBySid(){
+        if(createdBy == null)   return createdBySid;
+        else return createdBy.getUserSid();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+
+    public String getUserSid() {
+        return userSid;
     }
 }
