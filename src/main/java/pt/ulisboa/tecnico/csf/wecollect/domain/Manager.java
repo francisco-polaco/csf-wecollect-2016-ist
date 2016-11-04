@@ -7,10 +7,7 @@ import org.xml.sax.InputSource;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
-import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
-import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToCreateWorkingDirException;
-import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToParseXMLException;
-import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToRunPythonException;
+import pt.ulisboa.tecnico.csf.wecollect.exception.*;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -205,9 +202,9 @@ public class Manager {
 
         DatabaseManager.getInstance().commitUsers(p);
 
-        for (User u: userArrayList) {
+        /*for (User u: userArrayList) {
             System.out.println(u);
-        }
+        }*/
         //<Data Name="Key"
     }
 

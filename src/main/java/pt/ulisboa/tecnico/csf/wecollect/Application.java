@@ -1,6 +1,7 @@
 package pt.ulisboa.tecnico.csf.wecollect;
 
 
+import pt.ulisboa.tecnico.csf.wecollect.exception.WECollectException;
 import pt.ulisboa.tecnico.csf.wecollect.service.ProcessEvtxService;
 
 /**
@@ -14,7 +15,11 @@ public class Application {
             System.err.println("Error running WECollect.");
             return;
         }
-
-        new ProcessEvtxService(args[0]).execute();
+        try {
+            new ProcessEvtxService(args[0]).execute();
+        }catch (WECollectException e){
+            e.printStackTrace();
+            System.err.println(e.getMessage());
+        }
     }
 }

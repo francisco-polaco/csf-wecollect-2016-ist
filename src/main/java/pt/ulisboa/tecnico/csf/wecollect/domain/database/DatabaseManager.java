@@ -4,6 +4,7 @@ import pt.ulisboa.tecnico.csf.wecollect.domain.Computer;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Manager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
 import pt.ulisboa.tecnico.csf.wecollect.domain.User;
+import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
 
 import javax.xml.crypto.Data;
 import java.lang.reflect.*;
@@ -70,9 +71,25 @@ public class DatabaseManager {
     }
 
 
-    public void commitComputer(Pack pack) {
+    public void commitComputer(Pack pack) throws RegistryAlreadyExistsException {
         Connection con = connectToDB();
         Computer computer = pack.getComputer();
+
+        try (PreparedStatement pstmt = con.prepareStatement("SELECT name, sid FROM computers;")) {
+            ResultSet resultSet = pstmt.executeQuery();
+            while(resultSet.next()){
+                if(resultSet.getString("name").equals(computer.getName()) && resultSet.getString("sid").equals(computer.getSid())) {
+                    resultSet.close();
+                    pstmt.close();
+                    con.close();
+                    throw new RegistryAlreadyExistsException(computer.getName(), computer.getSid());
+                }
+            }
+            resultSet.close();
+        }catch (SQLException e) {
+            e.printStackTrace();
+        }
+
         try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO computers (name, sid) VALUES (?, ?);")) {
             pstmt.setString(1, computer.getName());
             pstmt.setString(2, computer.getSid());
@@ -102,13 +119,14 @@ public class DatabaseManager {
         Connection con = connectToDB();
         Computer computer = pack.getComputer();
         ArrayList<User> userArrayList = pack.getUsers();
+
+        // Inserir os valores na DB
         for(User u : userArrayList){
             try (PreparedStatement pstmt =
                          con.prepareStatement("INSERT INTO users (computer_id, relative_id, username) VALUES (?, ?, ?);")) {
                 pstmt.setInt(1, computer.getId());
                 pstmt.setString(2, u.getUserSid());
                 pstmt.setString(3, u.getUsername());
-               // pstmt.setString(4, u.getCreatedBySid());
                 pstmt.executeUpdate();
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -116,6 +134,8 @@ public class DatabaseManager {
             }
 
         }
+
+        // Obter os ids para os objectos Java, atribuidos pela DB
         for(User u : userArrayList) {
             try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM users WHERE computer_id=? AND relative_id=? AND username=?;")) {
                 System.out.println(computer.getId());
@@ -130,9 +150,9 @@ public class DatabaseManager {
             } catch (SQLException e) {
                 e.printStackTrace();
             }
-
         }
 
+        // Atribuir os ids corretos dos users que criaram outros users
         for(User u : userArrayList) {
             try (PreparedStatement pstmt = con.prepareStatement("UPDATE users SET created_by=? WHERE id=?;")) {
                 if(u.getCreatedById() == null)
