@@ -7,6 +7,12 @@ import java.sql.Timestamp;
  */
 public abstract class UserEvent extends Event {
 
+    public UserEvent(Timestamp timestamp, int computerId, int userId, String sid) {
+        super(timestamp, computerId);
+        this.userId = userId;
+        this.sid = sid;
+    }
+
     public int getUserId() {
         return userId;
     }
@@ -32,8 +38,12 @@ public abstract class UserEvent extends Event {
 
     private String sid;
 
-    @Override
-    public void commitToDb() {
 
+    @Override
+    public String toString() {
+        return "UserEvent{" +
+                "userId=" + userId +
+                ", sid='" + sid + '\'' +
+                "} ; " + super.toString();
     }
 }

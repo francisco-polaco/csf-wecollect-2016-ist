@@ -4,10 +4,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.Event;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.LogoutUserEvent;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.ShutdownEvent;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.StartupEvent;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.*;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
 import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
@@ -24,6 +21,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.*;
+import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -204,7 +202,7 @@ public class Manager {
         processLogoutEvents(p);
 
         for (Event e : p.getEvents()) {
-            System.out.println(e);
+            System.out.println(e.toString());
             e.commitToDb();
         }
     }
@@ -287,6 +285,7 @@ public class Manager {
 
             // TAG Event
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            if(childNodes.item(2) == null) continue;
             // TAG EventData
             NodeList data = childNodes.item(2).getChildNodes();
 
@@ -298,7 +297,7 @@ public class Manager {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserSid")) {
-                    if(data.item(j).getTextContent().length() > 8) { // special sids
+                    if(!(data.item(j).getTextContent().length() > 8)) { // special sids
                         // We shall not reveal god to the mundane people
                         toSkip = true;
                         break;
@@ -313,7 +312,14 @@ public class Manager {
                 }
 
             }
-            if(!toSkip) pack.addEvent(new LogoutUserEvent(timestamp, pack.getComputer().getId(), sid, logonId, loginType));
+            if(!toSkip) {
+                try {
+                    pack.addEvent(new LogoutUserEvent(timestamp, pack.getComputer().getId(), Pack.getInstance().getUserIdBySid(sid), sid,
+                            new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
+                }catch (IllegalStateException e){
+                    System.err.println("User id of this logout event was not found.");
+                }
+            }
 
         }
     }
@@ -335,6 +341,7 @@ public class Manager {
 
             // TAG Event
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            if(childNodes.item(2) == null) continue;
             // TAG EventData
             NodeList data = childNodes.item(2).getChildNodes();
 
@@ -346,7 +353,7 @@ public class Manager {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserSid")) {
-                    if(data.item(j).getTextContent().length() > 8) { // special sids
+                    if(!(data.item(j).getTextContent().length() > 8)) { // special sids
                         // We shall not reveal god to the mundane people
                         toSkip = true;
                         break;
@@ -361,8 +368,15 @@ public class Manager {
                 }
 
             }
-            if(!toSkip) pack.addEvent(new LoginUserEvent(timestamp, pack.getComputer().getId(), sid, logonId, loginType));
+            if(!toSkip) {
+                try {
+                    pack.addEvent(new LoginUserEvent(timestamp, pack.getComputer().getId(), Pack.getInstance().getUserIdBySid(sid), sid,
+                            new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
 
+                } catch (IllegalStateException e) {
+                    System.err.println("User id of this login event was not found.");
+                }
+            }
         }
     }
 

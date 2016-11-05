@@ -71,4 +71,15 @@ public class FirewallEvent extends Event {
     private String destIp;
     private short destPort;
 
+    @Override
+    public String toString() {
+        return "FirewallEvent{" +
+                "allowed=" + allowed +
+                ", protocol='" + protocol + '\'' +
+                ", sourceIp='" + sourceIp + '\'' +
+                ", sourcePort=" + sourcePort +
+                ", destIp='" + destIp + '\'' +
+                ", destPort=" + destPort +
+                "} ; " + super.toString();
+    }
 }

@@ -3,9 +3,7 @@ package pt.ulisboa.tecnico.csf.wecollect.domain.database;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Computer;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
 import pt.ulisboa.tecnico.csf.wecollect.domain.User;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.FirewallEvent;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.ShutdownEvent;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.StartupEvent;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.*;
 import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
 
 import java.sql.*;
@@ -218,5 +216,31 @@ public class DatabaseManager {
         }catch (SQLException e){
             e.printStackTrace();
         }
+    }
+
+    public void commitLoginEvents(LoginUserEvent loginUserEvent){
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO logons (user_id, logon_id, login_type, timestamp) VALUES (?, ?, ?, ?);")){
+            commitLogEvents(pstmt, loginUserEvent.getUserId(), loginUserEvent.getLoginId(), loginUserEvent.getLoginType(), loginUserEvent.getTimestamp());
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void commitLogoutEvents(LogoutUserEvent logoutUserEvent){
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO logoffs (user_id, logon_id, login_type, timestamp) VALUES (?, ?, ?, ?);")){
+            commitLogEvents(pstmt, logoutUserEvent.getUserId(), logoutUserEvent.getLoginId(), logoutUserEvent.getLoginType(), logoutUserEvent.getTimestamp());
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void commitLogEvents(PreparedStatement pstmt, int userId, long loginId, short loginType, Timestamp timestamp) throws SQLException {
+        pstmt.setInt(1, userId);
+        pstmt.setLong(2, loginId);
+        pstmt.setShort(3, loginType);
+        pstmt.setTimestamp(4, timestamp);
+        pstmt.executeUpdate();
     }
 }

@@ -3,6 +3,7 @@ package pt.ulisboa.tecnico.csf.wecollect.domain;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.Event;
 
 import java.util.ArrayList;
+import java.util.IllegalFormatCodePointException;
 
 /**
  * Created by xxlxpto on 28-10-2016.
@@ -51,6 +52,16 @@ public class Pack {
 
     public ArrayList<User> getUsers() {
         return users;
+    }
+
+    public int getUserIdBySid(String sid) throws IllegalStateException{
+        int indexOfLastDash = sid.lastIndexOf("-");
+        sid = sid.substring(indexOfLastDash + 1);;
+        for(User u : users){
+            if(u.getUserSid().equals(sid))
+                return u.getId();
+        }
+        throw new IllegalStateException();
     }
 
     public void setUsers(ArrayList<User> users) {

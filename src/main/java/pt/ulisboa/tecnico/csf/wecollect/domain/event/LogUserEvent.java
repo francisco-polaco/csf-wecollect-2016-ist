@@ -5,7 +5,13 @@ import java.sql.Timestamp;
 /**
  * Created by xxlxpto on 28-10-2016.
  */
-public class LogUserEvent extends UserEvent {
+public abstract class LogUserEvent extends UserEvent {
+
+    public LogUserEvent(Timestamp timestamp, int computerId, int userId, String sid, long loginId, short loginType) {
+        super(timestamp, computerId, userId, sid);
+        this.loginId = loginId;
+        this.loginType = loginType;
+    }
 
     public long getLoginId() {
         return loginId;
@@ -33,4 +39,11 @@ public class LogUserEvent extends UserEvent {
     private short loginType;
 
 
+    @Override
+    public String toString() {
+        return "LogUserEvent{" +
+                "loginId=" + loginId +
+                ", loginType=" + loginType +
+                '}' + " ; " + super.toString();
+    }
 }

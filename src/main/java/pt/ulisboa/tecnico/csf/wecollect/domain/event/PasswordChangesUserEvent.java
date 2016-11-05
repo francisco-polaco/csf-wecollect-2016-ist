@@ -1,9 +1,15 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain.event;
 
+import java.sql.Timestamp;
+
 /**
  * Created by xxlxpto on 28-10-2016.
  */
-public class PasswordChangesUserEvent {
+public class PasswordChangesUserEvent extends UserEvent{
+    public PasswordChangesUserEvent(Timestamp timestamp, int computerId, String sid) {
+        super(timestamp, computerId, sid);
+    }
+
     public int getChangedBy() {
         return changedBy;
     }
@@ -13,4 +19,16 @@ public class PasswordChangesUserEvent {
     }
 
     private int changedBy;
+
+    @Override
+    public void commitToDb() {
+
+    }
+
+    @Override
+    public String toString() {
+        return "PasswordChangesUserEvent{" +
+                "changedBy=" + changedBy +
+                "} + ; " + super.toString();
+    }
 }
