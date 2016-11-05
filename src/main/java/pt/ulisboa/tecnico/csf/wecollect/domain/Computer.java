@@ -1,7 +1,5 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain;
 
-import java.util.ArrayList;
-
 /**
  * Created by xxlxpto on 28-10-2016.
  */

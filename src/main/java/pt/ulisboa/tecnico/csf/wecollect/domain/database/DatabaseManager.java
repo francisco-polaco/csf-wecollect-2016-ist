@@ -1,13 +1,10 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain.database;
 
 import pt.ulisboa.tecnico.csf.wecollect.domain.Computer;
-import pt.ulisboa.tecnico.csf.wecollect.domain.Manager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
 import pt.ulisboa.tecnico.csf.wecollect.domain.User;
 import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
 
-import javax.xml.crypto.Data;
-import java.lang.reflect.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -33,22 +30,25 @@ public class DatabaseManager {
     }
 
     private Connection connectToDB(){
-        Properties connectionProps = new Properties();
-        connectionProps.put("user", "root");
-        connectionProps.put("password", "rootroot");
+//        String username = "root";
+        String username = "wecollect";
+//        String password = "rootroot";
+        String password = "eDVBmspXvnX5u78F";
+//        String host = "localhost";
+        String host = "lis.pt.bernardocordeiro.eu";
 
-        /*try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }*/
+        String url = "jdbc:mysql://" + host + ":3306/wecollect";
+
+        Properties connectionProps = new Properties();
+        connectionProps.put("user", username);
+        connectionProps.put("password", password);
 
         System.out.println("Connecting database...");
 
         Connection connection;
 
         try {
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/wecollect", connectionProps);
+            connection = DriverManager.getConnection(url, connectionProps);
             System.out.println("Database connected!");
         } catch (SQLException e) {
             throw new IllegalStateException("Cannot connect the database!", e);
@@ -126,10 +126,11 @@ public class DatabaseManager {
         // Inserir os valores na DB
         for(User u : userArrayList){
             try (PreparedStatement pstmt =
-                         con.prepareStatement("INSERT INTO users (computer_id, relative_id, username) VALUES (?, ?, ?);")) {
+                         con.prepareStatement("INSERT INTO users (computer_id, relative_id, username, timestamp) VALUES (?, ?, ?, ?);")) {
                 pstmt.setInt(1, computer.getId());
                 pstmt.setString(2, u.getUserSid());
                 pstmt.setString(3, u.getUsername());
+                pstmt.setTimestamp(4, u.getCreatedOn());
                 pstmt.executeUpdate();
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -140,11 +141,11 @@ public class DatabaseManager {
 
         // Obter os ids para os objectos Java, atribuidos pela DB
         for(User u : userArrayList) {
-            try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM users WHERE computer_id=? AND relative_id=? AND username=?;")) {
-                System.out.println(computer.getId());
+            try (PreparedStatement pstmt = con.prepareStatement("SELECT id FROM users WHERE computer_id=? AND relative_id=? AND username=? AND timestamp=?;")) {
                 pstmt.setInt(1, computer.getId());
                 pstmt.setString(2, u.getUserSid());
                 pstmt.setString(3, u.getUsername());
+                pstmt.setTimestamp(4, u.getCreatedOn());
                 ResultSet resultSet = pstmt.executeQuery();
                 if(resultSet.next()) {
                     u.setId(resultSet.getInt("id"));
@@ -169,6 +170,7 @@ public class DatabaseManager {
             }
         }
         try {
+            System.out.println("Closing connection!");
             con.close();
         } catch (SQLException e) {
             e.printStackTrace();

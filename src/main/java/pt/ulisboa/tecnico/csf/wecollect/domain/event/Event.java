@@ -1,14 +1,19 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain.event;
 
-import org.joda.time.DateTime;
+import java.sql.Timestamp;
 
 /**
  * Created by xxlxpto on 28-10-2016.
  */
 public abstract class Event {
     private int id;
-    private DateTime timestamp;
+    private Timestamp timestamp;
     private int computerId;
+
+    public Event(Timestamp timestamp, int computerId) {
+        this.timestamp = timestamp;
+        this.computerId = computerId;
+    }
 
     public int getComputerId() {
         return computerId;
@@ -27,11 +32,20 @@ public abstract class Event {
         this.id = id;
     }
 
-    public DateTime getTimestamp() {
+    public Timestamp getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(DateTime timestamp) {
+    public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
+    }
+
+    @Override
+    public String toString() {
+        return "Event{" +
+                "id=" + id +
+                ", timestamp=" + timestamp +
+                ", computerId=" + computerId +
+                '}';
     }
 }

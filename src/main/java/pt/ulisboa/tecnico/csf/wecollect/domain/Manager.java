@@ -1,13 +1,18 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain;
 
 import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.Event;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.ShutdownEvent;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.StartupEvent;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
-import pt.ulisboa.tecnico.csf.wecollect.exception.*;
+import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
+import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToCreateWorkingDirException;
+import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToParseXMLException;
+import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToRunPythonException;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -18,8 +23,12 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.*;
+import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 
 /**
  * Created by xxlxpto on 21-10-2016.
@@ -183,7 +192,22 @@ public class Manager {
 
     private void getPackReady() throws IOException, XPathExpressionException {
         Pack p = new Pack();
+        processComputer(p);
+        processUsers(p);
 
+
+        // Events
+        processStartupEvents(p);
+        processShutdownEvents(p);
+
+        for (Event e : p.getEvents()) {
+            System.out.println(e);
+
+        }
+    }
+
+    private void processComputer(Pack p) throws IOException {
+        // Computer
 
         Computer c = new Computer();
 
@@ -196,16 +220,68 @@ public class Manager {
         p.setComputer(c);
 
         DatabaseManager.getInstance().commitComputer(p);
+    }
+
+    private void processUsers(Pack p) throws XPathExpressionException {
+        // Users
 
         ArrayList<User> userArrayList = getUsers();
         p.setUsers(userArrayList);
 
         DatabaseManager.getInstance().commitUsers(p);
+    }
 
-        /*for (User u: userArrayList) {
-            System.out.println(u);
-        }*/
-        //<Data Name="Key"
+    private void processStartupEvents(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"4608\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0 ; i < nodes.getLength() ; i++) {
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            // Don't ask me, we are doing a travel through the tree :D
+            String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+            Date parsedDate = null;
+            try {
+                parsedDate = dateFormat.parse(timestampString);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
+
+            pack.addEvent(new StartupEvent(timestamp, pack.getComputer().getId()));
+        }
+    }
+
+    private void processShutdownEvents(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"4609\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0 ; i < nodes.getLength() ; i++) {
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            // Don't ask me, we are doing a travel through the tree :D
+
+            Timestamp timestamp = getTimestampFromXML(childNodes);
+           /* String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+            Date parsedDate = null;
+            try {
+                parsedDate = dateFormat.parse(timestampString);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());*/
+
+            pack.addEvent(new ShutdownEvent(timestamp, pack.getComputer().getId()));
+        }
+
     }
 
     private ArrayList<User> getUsers() throws XPathExpressionException {
@@ -221,6 +297,7 @@ public class Manager {
             String sid = "";
             String createdBySid = "";
             String createdByUname = "";
+            Timestamp timestamp = null;
             boolean toSkip = false;
 
 
@@ -228,6 +305,11 @@ public class Manager {
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
             // TAG EventData
             NodeList data = childNodes.item(2).getChildNodes();
+
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+
             for(int j = 0 ; j < data.getLength() ; j+=2) {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
@@ -255,7 +337,7 @@ public class Manager {
 
                         for (User u : userArrayList) {
                             if (u.getUserSid().equals(data.item(j).getTextContent().substring(indexOfLastDash + 1))) {
-                                userArrayList.add(new User(sid, username, u));
+                                userArrayList.add(new User(sid, username, u, timestamp));
                                 toSkip = true;
                                 break;
                             }
@@ -269,12 +351,26 @@ public class Manager {
                 }
 
             }
-            if(!toSkip) userArrayList.add(new User(sid, username, createdBySid, createdByUname));
+            if(!toSkip) userArrayList.add(new User(sid, username, createdBySid, createdByUname, timestamp));
 
         }
         return userArrayList;
     }
 
+    private Timestamp getTimestampFromXML(NodeList childNodes) {
+        Timestamp timestamp;
+        String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+        Date parsedDate = null;
+        try {
+            parsedDate = dateFormat.parse(timestampString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        timestamp = new Timestamp(parsedDate.getTime());
+        return timestamp;
+    }
 
     /**
      * @return Arraylist with, in index 0, the computer's name and, in index 1, Computer id

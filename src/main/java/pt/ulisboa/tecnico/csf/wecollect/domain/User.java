@@ -1,35 +1,47 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain;
 
+import java.sql.Timestamp;
+
 /**
  * Created by xxlxpto on 28-10-2016.
  */
 public class User {
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
 
     private int id;
-
     private String userSid;
     private String username;
     private User createdBy;
     private String createdBySid;
     private String createdByName;
+    private Timestamp createdOn;
 
-    public User(String userSid, String username, String createdBySid, String createdByName) {
+    public int getId() {
+        return id;
+    }
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public Timestamp getCreatedOn() {
+        return createdOn;
+    }
+
+    public void setCreatedOn(Timestamp createdOn) {
+        this.createdOn = createdOn;
+    }
+
+    public User(String userSid, String username, String createdBySid, String createdByName, Timestamp timestamp) {
         this.userSid = userSid;
         this.username = username;
         this.createdBySid = createdBySid;
         this.createdByName = createdByName;
+        createdOn = timestamp;
     }
-    public User(String userSid, String username, User createdBy) {
+    public User(String userSid, String username, User createdBy, Timestamp timestamp) {
         this.userSid = userSid;
         this.username = username;
         this.createdBy = createdBy;
+        createdOn = timestamp;
     }
     @Override
     public String toString() {
