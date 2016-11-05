@@ -11,6 +11,11 @@ public class FirewallEvent extends Event {
         super(timestamp, computerId);
     }
 
+    @Override
+    public void commitToDb() {
+
+    }
+
     public boolean isAllowed() {
         return allowed;
     }

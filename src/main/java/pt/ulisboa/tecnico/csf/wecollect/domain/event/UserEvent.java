@@ -19,4 +19,9 @@ public abstract class UserEvent extends Event {
     }
 
     private int userId;
+
+    @Override
+    public void commitToDb() {
+
+    }
 }

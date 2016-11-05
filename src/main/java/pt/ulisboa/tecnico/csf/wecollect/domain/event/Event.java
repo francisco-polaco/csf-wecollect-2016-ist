@@ -40,6 +40,8 @@ public abstract class Event {
         this.timestamp = timestamp;
     }
 
+    public abstract void commitToDb();
+
     @Override
     public String toString() {
         return "Event{" +

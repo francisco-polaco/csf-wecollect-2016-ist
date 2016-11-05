@@ -8,15 +8,29 @@ import java.util.ArrayList;
  * Created by xxlxpto on 28-10-2016.
  */
 public class Pack {
+
     private Computer computer;
 
     private ArrayList<User> users = new ArrayList<>();
 
+    private ArrayList<Event> events = new ArrayList<>();
+
+
+    private static Pack instance;
+
+    public static Pack getInstance(){
+        if(instance == null) throw new IllegalStateException("Pack should have been instantiated.");
+        return instance;
+    }
+
+    public Pack(){
+        instance = this;
+    }
+
+
     public ArrayList<Event> getEvents() {
         return events;
     }
-
-    private ArrayList<Event> events = new ArrayList<>();
 
     public void addEvent(Event event){
         events.add(event);

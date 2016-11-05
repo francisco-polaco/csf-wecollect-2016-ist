@@ -3,6 +3,8 @@ package pt.ulisboa.tecnico.csf.wecollect.domain.database;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Computer;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
 import pt.ulisboa.tecnico.csf.wecollect.domain.User;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.ShutdownEvent;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.StartupEvent;
 import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
 
 import java.sql.*;
@@ -176,5 +178,27 @@ public class DatabaseManager {
             e.printStackTrace();
         }
 
+    }
+
+    public void commitStartupEvents(StartupEvent startupEvent){
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO startups (timestamp, computer_id) VALUES (?, ?);")){
+            pstmt.setTimestamp(1, startupEvent.getTimestamp());
+            pstmt.setInt(2, Pack.getInstance().getComputer().getId());
+            pstmt.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void commitShutdownEvents(ShutdownEvent shutdownEvent){
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO shutdowns (timestamp, computer_id) VALUES (?, ?);")){
+            pstmt.setTimestamp(1, shutdownEvent.getTimestamp());
+            pstmt.setInt(2, Pack.getInstance().getComputer().getId());
+            pstmt.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
     }
 }

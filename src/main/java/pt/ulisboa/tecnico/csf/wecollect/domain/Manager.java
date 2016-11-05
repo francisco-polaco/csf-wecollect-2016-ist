@@ -202,21 +202,17 @@ public class Manager {
 
         for (Event e : p.getEvents()) {
             System.out.println(e);
-
+            e.commitToDb();
         }
     }
 
     private void processComputer(Pack p) throws IOException {
         // Computer
-
         Computer c = new Computer();
 
         ArrayList<String> computerDetails = getComputerDetails();
         c.setSid(computerDetails.get(1));
-        System.out.println(computerDetails.get(1));
         c.setName(computerDetails.get(0));
-        System.out.println(computerDetails.get(0));
-
         p.setComputer(c);
 
         DatabaseManager.getInstance().commitComputer(p);
@@ -265,20 +261,7 @@ public class Manager {
 
         for(int i = 0 ; i < nodes.getLength() ; i++) {
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
-            // Don't ask me, we are doing a travel through the tree :D
-
             Timestamp timestamp = getTimestampFromXML(childNodes);
-           /* String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
-
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
-            Date parsedDate = null;
-            try {
-                parsedDate = dateFormat.parse(timestampString);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());*/
-
             pack.addEvent(new ShutdownEvent(timestamp, pack.getComputer().getId()));
         }
 
@@ -358,7 +341,7 @@ public class Manager {
     }
 
     private Timestamp getTimestampFromXML(NodeList childNodes) {
-        Timestamp timestamp;
+        // Don't ask me, we are doing a travel through the tree :D
         String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
@@ -368,8 +351,7 @@ public class Manager {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        timestamp = new Timestamp(parsedDate.getTime());
-        return timestamp;
+        return new Timestamp(parsedDate.getTime());
     }
 
     /**
