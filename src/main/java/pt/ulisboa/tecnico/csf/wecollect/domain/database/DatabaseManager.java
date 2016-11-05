@@ -3,6 +3,7 @@ package pt.ulisboa.tecnico.csf.wecollect.domain.database;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Computer;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
 import pt.ulisboa.tecnico.csf.wecollect.domain.User;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.FirewallEvent;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.ShutdownEvent;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.StartupEvent;
 import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
@@ -196,6 +197,23 @@ public class DatabaseManager {
         try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO shutdowns (timestamp, computer_id) VALUES (?, ?);")){
             pstmt.setTimestamp(1, shutdownEvent.getTimestamp());
             pstmt.setInt(2, Pack.getInstance().getComputer().getId());
+            pstmt.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void commitFirewallEvents(FirewallEvent firewallEvent){
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO fwlogs (timestamp, computer_id, allowed, protocol, src_ip, src_port, dst_ip, dst_port) VALUES (?, ?, ?, ?, INET6_ATON(?), ?, INET6_ATON(?), ?);")){
+            pstmt.setTimestamp(1, firewallEvent.getTimestamp());
+            pstmt.setInt(2, Pack.getInstance().getComputer().getId());
+            pstmt.setBoolean(3, firewallEvent.isAllowed());
+            pstmt.setString(4, firewallEvent.getProtocol());
+            pstmt.setString(5, firewallEvent.getSourceIp());
+            pstmt.setShort(6, firewallEvent.getSourcePort());
+            pstmt.setString(7, firewallEvent.getDestIp());
+            pstmt.setShort(8, firewallEvent.getDestPort());
             pstmt.executeUpdate();
         }catch (SQLException e){
             e.printStackTrace();
