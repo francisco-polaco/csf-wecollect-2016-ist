@@ -198,7 +198,7 @@ public class Manager {
 
         // Events
         processStartupEvents(p);
-        processShutdownEvents(p);
+        processEventLoggerShutdownEvents(p);
 
         for (Event e : p.getEvents()) {
             System.out.println(e);
@@ -252,9 +252,9 @@ public class Manager {
         }
     }
 
-    private void processShutdownEvents(Pack pack) throws XPathExpressionException {
+    private void processEventLoggerShutdownEvents(Pack pack) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "/Events/Event/System/EventID[text()=\"4609\"]";
+        String expression = "/Events/Event/System/EventID[text()=\"1100\"]";
         InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
