@@ -5,6 +5,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.Event;
+import pt.ulisboa.tecnico.csf.wecollect.domain.event.LogoutUserEvent;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.ShutdownEvent;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.StartupEvent;
 import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
@@ -199,6 +200,8 @@ public class Manager {
         // Events
         processStartupEvents(p);
         processEventLoggerShutdownEvents(p);
+        processLoginEvents(p);
+        processLogoutEvents(p);
 
         for (Event e : p.getEvents()) {
             System.out.println(e);
@@ -266,6 +269,103 @@ public class Manager {
         }
 
     }
+
+    private void processLogoutEvents(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"4634\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0; i < nodes.getLength() ; i++){
+            String sid = "";
+            String logonId = "";
+            String loginType = "";
+            Timestamp timestamp = null;
+            boolean toSkip = false;
+
+
+            // TAG Event
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            // TAG EventData
+            NodeList data = childNodes.item(2).getChildNodes();
+
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+
+            for(int j = 0 ; j < data.getLength() ; j+=2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                if (attributes.item(0).getNodeValue().equals("TargetUserSid")) {
+                    if(data.item(j).getTextContent().length() > 8) { // special sids
+                        // We shall not reveal god to the mundane people
+                        toSkip = true;
+                        break;
+                    }
+                    sid = data.item(j).getTextContent();
+                }
+                else if (attributes.item(0).getNodeValue().equals("TargetLogonId")) {
+                    logonId = data.item(j).getTextContent();
+                }
+                else if (attributes.item(0).getNodeValue().equals("LogonType")) {
+                    loginType = data.item(j).getTextContent();
+                }
+
+            }
+            if(!toSkip) pack.addEvent(new LogoutUserEvent(timestamp, pack.getComputer().getId(), sid, logonId, loginType));
+
+        }
+    }
+
+    private void processLoginEvents(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"4624\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0; i < nodes.getLength() ; i++){
+            String sid = "";
+            String logonId = "";
+            String loginType = "";
+            Timestamp timestamp = null;
+            boolean toSkip = false;
+
+
+            // TAG Event
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            // TAG EventData
+            NodeList data = childNodes.item(2).getChildNodes();
+
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+
+            for(int j = 0 ; j < data.getLength() ; j+=2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                if (attributes.item(0).getNodeValue().equals("TargetUserSid")) {
+                    if(data.item(j).getTextContent().length() > 8) { // special sids
+                        // We shall not reveal god to the mundane people
+                        toSkip = true;
+                        break;
+                    }
+                    sid = data.item(j).getTextContent();
+                }
+                else if (attributes.item(0).getNodeValue().equals("TargetLogonId")) {
+                    logonId = data.item(j).getTextContent();
+                }
+                else if (attributes.item(0).getNodeValue().equals("LogonType")) {
+                    loginType = data.item(j).getTextContent();
+                }
+
+            }
+            if(!toSkip) pack.addEvent(new LoginUserEvent(timestamp, pack.getComputer().getId(), sid, logonId, loginType));
+
+        }
+    }
+
 
     private ArrayList<User> getUsers() throws XPathExpressionException {
         ArrayList<User> userArrayList = new ArrayList<>();

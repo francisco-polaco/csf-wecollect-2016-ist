@@ -6,9 +6,6 @@ import java.sql.Timestamp;
  * Created by xxlxpto on 28-10-2016.
  */
 public class LogUserEvent extends UserEvent {
-    public LogUserEvent(Timestamp timestamp, int computerId) {
-        super(timestamp, computerId);
-    }
 
     public long getLoginId() {
         return loginId;
@@ -23,6 +20,12 @@ public class LogUserEvent extends UserEvent {
     }
 
     public void setLoginType(short loginType) {
+        this.loginType = loginType;
+    }
+
+    public LogUserEvent(Timestamp timestamp, int computerId, String sid, long loginId, short loginType) {
+        super(timestamp, computerId, sid);
+        this.loginId = loginId;
         this.loginType = loginType;
     }
 
