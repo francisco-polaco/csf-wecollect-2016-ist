@@ -214,6 +214,33 @@ public class Manager {
         }
     }
 
+    private void processPasswordChangesUserEvents(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"4723\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0 ; i < nodes.getLength() ; i++) {
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+
+            String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
+
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+            Date parsedDate = null;
+            try {
+                parsedDate = dateFormat.parse(timestampString);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
+
+            //TODO: Capture the Changed By
+
+            pack.addEvent(new StartupEvent(timestamp, pack.getComputer().getId()));
+        }
+    }
+
     private void processEventLoggerShutdownEvents(Pack pack) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"1100\"]";
