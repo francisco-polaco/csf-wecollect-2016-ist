@@ -15,7 +15,7 @@ import java.util.Properties;
  */
 public class DatabaseManager {
 
-    private Connection connection;
+    private Connection connection = null;
 
     private static DatabaseManager mInstance;
 
@@ -27,10 +27,11 @@ public class DatabaseManager {
     }
 
     private DatabaseManager(){
-        //connection = connectToDB();
+        connection = connectToDB();
     }
 
     private Connection connectToDB(){
+        if(connection != null) return connection;
 //        String username = "root";
         String username = "wecollect";
 //        String password = "rootroot";
@@ -46,15 +47,15 @@ public class DatabaseManager {
 
         System.out.println("Connecting database...");
 
-        Connection connection;
+        Connection localConnection;
 
         try {
-            connection = DriverManager.getConnection(url, connectionProps);
+            localConnection = DriverManager.getConnection(url, connectionProps);
             System.out.println("Database connected!");
         } catch (SQLException e) {
             throw new IllegalStateException("Cannot connect the database!", e);
         }
-        return connection;
+        return localConnection;
     }
 
     public void emptyEntries(){
@@ -71,26 +72,27 @@ public class DatabaseManager {
 
     }
 
-    public void commitComputer(Pack pack) throws RegistryAlreadyExistsException {
+    public void commitComputer(Pack pack, boolean force) throws RegistryAlreadyExistsException {
         Connection con = connectToDB();
         Computer computer = pack.getComputer();
 
         // Verificar se este computador ja foi loggado na DB
-        try (PreparedStatement pstmt = con.prepareStatement("SELECT name, sid FROM computers;")) {
-            ResultSet resultSet = pstmt.executeQuery();
-            while(resultSet.next()){
-                if(resultSet.getString("name").equals(computer.getName()) && resultSet.getString("sid").equals(computer.getSid())) {
-                    resultSet.close();
-                    pstmt.close();
-                    con.close();
-                    throw new RegistryAlreadyExistsException(computer.getName(), computer.getSid());
+        if(!force) {
+            try (PreparedStatement pstmt = con.prepareStatement("SELECT name, sid FROM computers;")) {
+                ResultSet resultSet = pstmt.executeQuery();
+                while (resultSet.next()) {
+                    if (resultSet.getString("name").equals(computer.getName()) && resultSet.getString("sid").equals(computer.getSid())) {
+                        resultSet.close();
+                        pstmt.close();
+                        disconnect();
+                        throw new RegistryAlreadyExistsException(computer.getName(), computer.getSid());
+                    }
                 }
+                resultSet.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-            resultSet.close();
-        }catch (SQLException e) {
-            e.printStackTrace();
         }
-
         // Inserir dados do computador na DB
         try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO computers (name, sid) VALUES (?, ?);")) {
             pstmt.setString(1, computer.getName());
@@ -109,13 +111,6 @@ public class DatabaseManager {
             resultSet.close();
         }catch (SQLException e) {
             e.printStackTrace();
-        }finally {
-            try {
-                System.out.println("Closing connection!");
-                con.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -170,12 +165,7 @@ public class DatabaseManager {
                 e.printStackTrace();
             }
         }
-        try {
-            System.out.println("Closing connection!");
-            con.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+
 
     }
 
@@ -209,9 +199,9 @@ public class DatabaseManager {
             pstmt.setBoolean(3, firewallEvent.isAllowed());
             pstmt.setString(4, firewallEvent.getProtocol());
             pstmt.setString(5, firewallEvent.getSourceIp());
-            pstmt.setShort(6, firewallEvent.getSourcePort());
+            pstmt.setInt(6, firewallEvent.getSourcePort());
             pstmt.setString(7, firewallEvent.getDestIp());
-            pstmt.setShort(8, firewallEvent.getDestPort());
+            pstmt.setInt(8, firewallEvent.getDestPort());
             pstmt.executeUpdate();
         }catch (SQLException e){
             e.printStackTrace();
@@ -242,5 +232,14 @@ public class DatabaseManager {
         pstmt.setShort(3, loginType);
         pstmt.setTimestamp(4, timestamp);
         pstmt.executeUpdate();
+    }
+
+    public void disconnect(){
+        try {
+            connection.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        connection = null;
     }
 }

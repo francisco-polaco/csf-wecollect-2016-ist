@@ -1,5 +1,7 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain.event;
 
+import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
+
 import java.sql.Timestamp;
 
 /**
@@ -7,13 +9,22 @@ import java.sql.Timestamp;
  */
 public class FirewallEvent extends Event {
 
-    public FirewallEvent(Timestamp timestamp, int computerId) {
+
+    public FirewallEvent(Timestamp timestamp, int computerId, boolean allowed, String protocol, String sourceIp, String destIp, int sourcePort, int destPort) {
         super(timestamp, computerId);
+        if(sourcePort > 65535 && sourcePort < 0 || destPort > 65535 && destPort < 0)
+            throw new IllegalArgumentException();
+        this.allowed = allowed;
+        this.protocol = protocol;
+        this.sourceIp = sourceIp;
+        this.sourcePort = sourcePort;
+        this.destIp = destIp;
+        this.destPort = destPort;
     }
 
     @Override
     public void commitToDb() {
-
+        DatabaseManager.getInstance().commitFirewallEvents(this);
     }
 
     public boolean isAllowed() {
@@ -40,11 +51,11 @@ public class FirewallEvent extends Event {
         this.sourceIp = sourceIp;
     }
 
-    public short getSourcePort() {
+    public int getSourcePort() {
         return sourcePort;
     }
 
-    public void setSourcePort(short sourcePort) {
+    public void setSourcePort(int sourcePort) {
         this.sourcePort = sourcePort;
     }
 
@@ -56,20 +67,20 @@ public class FirewallEvent extends Event {
         this.destIp = destIp;
     }
 
-    public short getDestPort() {
+    public int getDestPort() {
         return destPort;
     }
 
-    public void setDestPort(short destPort) {
+    public void setDestPort(int destPort) {
         this.destPort = destPort;
     }
 
     private boolean allowed;
     private String protocol;
     private String sourceIp;
-    private short sourcePort;
+    private int sourcePort;
     private String destIp;
-    private short destPort;
+    private int destPort;
 
     @Override
     public String toString() {

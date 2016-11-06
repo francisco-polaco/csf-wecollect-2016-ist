@@ -16,6 +16,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.crypto.Data;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -25,18 +26,19 @@ import java.math.BigInteger;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
+import java.util.*;
 
 /**
  * Created by xxlxpto on 21-10-2016.
  */
 public class Manager {
 
-    private static final String CURRENT_LOG_XML = "currentLog.xml";
     private static final String CURRENT_LOG_XML_TEST = "/home/xxlxpto/person.xml";
     private static final String WORKING_DIR = "wdir";
+
+    private String _rootFs;
+
+    private boolean _force = false;
 
     private static Manager mInstance;
 
@@ -47,24 +49,28 @@ public class Manager {
         return mInstance;
     }
 
-    private void processEvtx(String dirpath) throws ImpossibleToRunPythonException{
+    private void processEvtx(String rootFs) throws ImpossibleToRunPythonException{
         System.out.println("Starting to process EVTX.");
-        if(dirpath.endsWith("/")){ // cleaning the last slash
+        if(rootFs.endsWith("/")){ // cleaning the last slash
             System.out.println("Cleaning path");
-            dirpath = dirpath.substring(0, dirpath.length() - 1);
+            rootFs = rootFs.substring(0, rootFs.length() - 1);
         }
-
-        System.out.println("Getting every filename.");
-        ArrayList<File> files = getListOfFilenames(dirpath);
 
         System.out.println("Checking working folder.");
         checkWorkingFolder();
 
+        // EVTX
+
+        String evtxDirPath = rootFs + "C/Windows/System32/winevt/Logs";
+
+        System.out.println("Getting every filename.");
+        ArrayList<File> files = getListOfFilenames(evtxDirPath);
+
         for (File file: files) {
             Process p;
             try {
-                System.out.println("Processing file: " + dirpath + "/" + file.getName());
-                p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + dirpath + "/" + file.getName());
+                System.out.println("Processing file: " + evtxDirPath + "/" + file.getName());
+                p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + evtxDirPath + "/" + file.getName());
             } catch (IOException e) {
                 e.printStackTrace();
                 throw new ImpossibleToRunPythonException(e.getMessage());
@@ -77,7 +83,6 @@ public class Manager {
                 PrintWriter pw = new PrintWriter(new FileWriter(WORKING_DIR + "/" + filenameXml));
 
                 while ((line = inOut.readLine()) != null) {
-
                     if(!line.contains("&lt;") || !line.contains("&gt;") || !line.contains("&apos;") || !line.contains("%apos;"))
                         line = line.replaceAll("&", "");
 
@@ -176,16 +181,17 @@ public class Manager {
         }
     }
 
-    public void process(String filepath)  {
-        //processEvtx(filepath);
+    public void process(String rootPath)  {
+        _rootFs = rootPath;
+        if(!_force)
+            //processEvtx(filepath);
         try {
             getPackReady();
         } catch (IOException | XPathExpressionException e) {
             e.printStackTrace();
+        }finally {
+            DatabaseManager.getInstance().disconnect();
         }
-        /*getClassesFromXML();
-        DatabaseManager.getInstance().commitNewLogs();*/
-
 
     }
 
@@ -200,6 +206,8 @@ public class Manager {
         processEventLoggerShutdownEvents(p);
         processLoginEvents(p);
         processLogoutEvents(p);
+        processFirewallEvents(p);
+
 
         for (Event e : p.getEvents()) {
             System.out.println(e.toString());
@@ -216,7 +224,9 @@ public class Manager {
         c.setName(computerDetails.get(0));
         p.setComputer(c);
 
-        DatabaseManager.getInstance().commitComputer(p);
+        boolean force = _force;
+        _force = true;
+        DatabaseManager.getInstance().commitComputer(p, force);
     }
 
     private void processUsers(Pack p) throws XPathExpressionException {
@@ -317,7 +327,7 @@ public class Manager {
                     pack.addEvent(new LogoutUserEvent(timestamp, pack.getComputer().getId(), Pack.getInstance().getUserIdBySid(sid), sid,
                             new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
                 }catch (IllegalStateException e){
-                    System.err.println("User id of this logout event was not found.");
+                    //System.err.println("User id of this logout event was not found.");
                 }
             }
 
@@ -374,12 +384,68 @@ public class Manager {
                             new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
 
                 } catch (IllegalStateException e) {
-                    System.err.println("User id of this login event was not found.");
+                    //System.err.println("User id of this login event was not found.");
                 }
             }
         }
     }
 
+    private void processFirewallEvents(Pack pack){
+        String fwDirPath = _rootFs + "/C/Windows/System32/LogFiles/Firewall";
+        System.out.println("batata " + fwDirPath);
+
+        ArrayList<File> files = getListOfFilenames(fwDirPath);
+        System.out.println("cenoura");
+
+        files.removeIf(f -> !(f.getName().endsWith(".log") || ! f.getName().contains(".log.old")));
+        System.out.println("maca");
+
+        Collections.sort((List)files, (Comparator<String>) new FileExtensionComparator());
+
+        System.out.println("Ja demos sort dos files");
+
+        if(files.size() > 1) {
+            for (int i = 1; i < files.size(); i++) {
+                System.out.println("Firewall log.");
+                processFirewallFile(files.get(i), pack);
+            }
+        }
+        if(files.size() > 0)
+            processFirewallFile(files.get(0), pack); // most recent file
+    }
+
+    private void processFirewallFile(File file, Pack pack) {
+        try(BufferedReader br = new BufferedReader(new FileReader(file))){
+            String line;
+            while((line = br.readLine()) != null){
+                if ((line.startsWith("1") || line.startsWith("2"))) // should be enough for some years
+                {
+                    String[] tokens = line.split(" ");
+                    boolean allow = false;
+                    if(tokens[2].equals("ALLOW")) allow = true;
+                    if(!(tokens[3].equals("TCP") || tokens[3].equals("UDP"))) continue;
+                    // TODO timestamp
+                    try {
+                        pack.addEvent(new FirewallEvent(new Timestamp(0), pack.getComputer().getId(), allow, tokens[3], tokens[4], tokens[5],
+                                Integer.parseInt(tokens[6]), Integer.parseInt(tokens[7])));
+                    }catch (IllegalArgumentException e){
+                        continue; // skip this one
+                    }
+
+                }
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    private class FileExtensionComparator implements Comparator<String> {
+
+        @Override
+        public int compare(String o1, String o2) {
+            return o1.substring(o1.lastIndexOf('.')).compareTo(o2.substring(o2.lastIndexOf('.')));
+        }
+    }
 
     private ArrayList<User> getUsers() throws XPathExpressionException {
         ArrayList<User> userArrayList = new ArrayList<>();
