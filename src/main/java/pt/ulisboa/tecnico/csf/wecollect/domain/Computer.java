@@ -1,8 +1,5 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain;
 
-/**
- * Created by xxlxpto on 28-10-2016.
- */
 public class Computer {
 
     private int id;

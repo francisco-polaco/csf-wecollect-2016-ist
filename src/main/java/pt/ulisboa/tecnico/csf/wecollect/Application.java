@@ -6,9 +6,6 @@ import pt.ulisboa.tecnico.csf.wecollect.service.ProcessEvtxService;
 
 import java.util.Scanner;
 
-/**
- * Created by xxlxpto on 08-10-2016.
- */
 public class Application {
 
     public static void main(String[] args) {

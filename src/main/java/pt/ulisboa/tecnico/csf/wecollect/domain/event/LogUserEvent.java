@@ -2,9 +2,6 @@ package pt.ulisboa.tecnico.csf.wecollect.domain.event;
 
 import java.sql.Timestamp;
 
-/**
- * Created by xxlxpto on 28-10-2016.
- */
 public abstract class LogUserEvent extends UserEvent {
 
     public LogUserEvent(Timestamp timestamp, int computerId, int userId, String sid, long loginId, short loginType) {

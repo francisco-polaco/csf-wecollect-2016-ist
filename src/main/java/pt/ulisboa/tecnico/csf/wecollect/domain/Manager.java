@@ -20,9 +20,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-/**
- * Created by xxlxpto on 21-10-2016.
- */
+
 public class Manager {
 
     private static final String WORKING_DIR = "wdir";

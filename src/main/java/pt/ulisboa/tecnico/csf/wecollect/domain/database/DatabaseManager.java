@@ -10,9 +10,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
 
-/**
- * Created by xxlxpto on 21-10-2016.
- */
+
 public class DatabaseManager {
 
     private Connection connection = null;

@@ -2,9 +2,6 @@ package pt.ulisboa.tecnico.csf.wecollect.domain.event;
 
 import java.sql.Timestamp;
 
-/**
- * Created by xxlxpto on 28-10-2016.
- */
 public class PasswordChangesUserEvent extends UserEvent{
     public PasswordChangesUserEvent(Timestamp timestamp, int computerId, String sid) {
         super(timestamp, computerId, sid);

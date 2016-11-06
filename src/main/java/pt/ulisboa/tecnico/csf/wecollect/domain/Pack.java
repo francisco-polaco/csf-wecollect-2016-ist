@@ -4,9 +4,6 @@ import pt.ulisboa.tecnico.csf.wecollect.domain.event.Event;
 
 import java.util.ArrayList;
 
-/**
- * Created by xxlxpto on 28-10-2016.
- */
 public class Pack {
 
     private static final int LIMIT_EVENTS_ON_RAM = 500;
