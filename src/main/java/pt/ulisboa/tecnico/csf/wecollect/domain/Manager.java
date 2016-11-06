@@ -392,17 +392,9 @@ public class Manager {
 
     private void processFirewallEvents(Pack pack){
         String fwDirPath = _rootFs + "/C/Windows/System32/LogFiles/Firewall";
-        System.out.println("batata " + fwDirPath);
-
         ArrayList<File> files = getListOfFilenames(fwDirPath);
-        System.out.println("cenoura");
-
         files.removeIf(f -> !(f.getName().endsWith(".log") || ! f.getName().contains(".log.old")));
-        System.out.println("maca");
-
         Collections.sort((List)files, (Comparator<String>) new FileExtensionComparator());
-
-        System.out.println("Ja demos sort dos files");
 
         if(files.size() > 1) {
             for (int i = 1; i < files.size(); i++) {
@@ -425,8 +417,18 @@ public class Manager {
                     if(tokens[2].equals("ALLOW")) allow = true;
                     if(!(tokens[3].equals("TCP") || tokens[3].equals("UDP"))) continue;
                     // TODO timestamp
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+                    Date parsedDate = null;
                     try {
-                        pack.addEvent(new FirewallEvent(new Timestamp(0), pack.getComputer().getId(), allow, tokens[3], tokens[4], tokens[5],
+                        parsedDate = dateFormat.parse(tokens[0] + " " + tokens[1]);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
+
+
+                    try {
+                        pack.addEvent(new FirewallEvent(timestamp, pack.getComputer().getId(), allow, tokens[3], tokens[4], tokens[5],
                                 Integer.parseInt(tokens[6]), Integer.parseInt(tokens[7])));
                     }catch (IllegalArgumentException e){
                         continue; // skip this one
