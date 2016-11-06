@@ -235,11 +235,14 @@ public class DatabaseManager {
     }
 
     public void disconnect(){
+        System.out.println("Disconnecting from Database.");
         try {
             connection.close();
         } catch (SQLException e) {
             e.printStackTrace();
         }
         connection = null;
+        System.out.println("Disconnected from Database.");
+
     }
 }

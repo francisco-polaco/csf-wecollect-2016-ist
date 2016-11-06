@@ -162,11 +162,8 @@ public class Manager {
         processLogoutEvents(p);
         processFirewallEvents(p);
 
+        p.forceCommitToDb();
 
-        for (Event e : p.getEvents()) {
-            System.out.println(e.toString());
-            e.commitToDb();
-        }
     }
 
     private void processComputer(Pack p) throws IOException {

@@ -9,12 +9,11 @@ import java.util.ArrayList;
  */
 public class Pack {
 
+    private static final int LIMIT_EVENTS_ON_RAM = 500;
+
     private Computer computer;
-
     private ArrayList<User> users = new ArrayList<>();
-
     private ArrayList<Event> events = new ArrayList<>();
-
 
     private static Pack instance;
 
@@ -34,6 +33,18 @@ public class Pack {
 
     public void addEvent(Event event){
         events.add(event);
+        if(events.size() == LIMIT_EVENTS_ON_RAM){
+            forceCommitToDb();
+        }
+    }
+
+    public void forceCommitToDb() {
+        for (Event e : events) {
+            System.out.println(e.toString());
+            e.commitToDb();
+        }
+        events.clear();
+
     }
 
     public Computer getComputer() {

@@ -17,4 +17,9 @@ public class ShutdownEvent extends Event {
     public void commitToDb() {
         DatabaseManager.getInstance().commitShutdownEvents(this);
     }
+
+    @Override
+    public String toString() {
+        return "ShutdownEvent{} ; " + super.toString();
+    }
 }

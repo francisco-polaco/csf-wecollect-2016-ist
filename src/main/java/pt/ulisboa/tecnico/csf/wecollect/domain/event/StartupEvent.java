@@ -17,4 +17,9 @@ public class StartupEvent extends Event {
     public void commitToDb() {
         DatabaseManager.getInstance().commitStartupEvents(this);
     }
+
+    @Override
+    public String toString() {
+        return "StartupEvent{} ; " + super.toString();
+    }
 }
