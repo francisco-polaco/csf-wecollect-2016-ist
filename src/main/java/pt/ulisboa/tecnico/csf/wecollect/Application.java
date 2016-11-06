@@ -2,7 +2,6 @@ package pt.ulisboa.tecnico.csf.wecollect;
 
 
 import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
-import pt.ulisboa.tecnico.csf.wecollect.exception.WECollectException;
 import pt.ulisboa.tecnico.csf.wecollect.service.ProcessEvtxService;
 
 import java.util.Scanner;

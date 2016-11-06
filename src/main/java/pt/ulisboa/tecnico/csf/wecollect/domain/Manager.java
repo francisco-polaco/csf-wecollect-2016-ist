@@ -5,18 +5,10 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.*;
-import pt.ulisboa.tecnico.csf.wecollect.domain.teste.People;
-import pt.ulisboa.tecnico.csf.wecollect.domain.teste.Person;
 import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToCreateWorkingDirException;
-import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToParseXMLException;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToRunPythonException;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.crypto.Data;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -33,7 +25,6 @@ import java.util.*;
  */
 public class Manager {
 
-    private static final String CURRENT_LOG_XML_TEST = "/home/xxlxpto/person.xml";
     private static final String WORKING_DIR = "wdir";
 
     private String _rootFs;
@@ -49,6 +40,20 @@ public class Manager {
         return mInstance;
     }
 
+    public void process(String rootPath)  {
+        _rootFs = rootPath;
+        if(!_force)
+            processEvtx(rootPath);
+        try {
+            getPackReady();
+        } catch (IOException | XPathExpressionException e) {
+            e.printStackTrace();
+        }finally {
+            DatabaseManager.getInstance().disconnect();
+        }
+
+    }
+
     private void processEvtx(String rootFs) throws ImpossibleToRunPythonException{
         System.out.println("Starting to process EVTX.");
         if(rootFs.endsWith("/")){ // cleaning the last slash
@@ -61,7 +66,7 @@ public class Manager {
 
         // EVTX
 
-        String evtxDirPath = rootFs + "C/Windows/System32/winevt/Logs";
+        String evtxDirPath = rootFs + "/C/Windows/System32/winevt/Logs";
 
         System.out.println("Getting every filename.");
         ArrayList<File> files = getListOfFilenames(evtxDirPath);
@@ -83,8 +88,13 @@ public class Manager {
                 PrintWriter pw = new PrintWriter(new FileWriter(WORKING_DIR + "/" + filenameXml));
 
                 while ((line = inOut.readLine()) != null) {
-                    if(!line.contains("&lt;") || !line.contains("&gt;") || !line.contains("&apos;") || !line.contains("%apos;"))
+                    if(!line.contains("&lt;") || !line.contains("&gt;") ||
+                            !line.contains("&apos;") || !line.contains("%apos;"))
                         line = line.replaceAll("&", "");
+
+                    if(line.contains("\0")) line = line.replaceAll("\0", "");
+
+                    if(line.contains("\1")) line = line.replaceAll("\1", "");
 
                     if(line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
                         line = line.replaceAll("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "");
@@ -137,62 +147,6 @@ public class Manager {
             }
         }
         return files;
-    }
-
-    private void getClassesFromXML(){
-        Unmarshaller jaxbUnmarshaller;
-        People p = null;
-        try {
-            JAXBContext jaxbContext = JAXBContext.newInstance(People.class);
-            jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-            p = (People) jaxbUnmarshaller.unmarshal(new File(CURRENT_LOG_XML_TEST));
-        } catch (JAXBException e) {
-            e.printStackTrace();
-            throw new ImpossibleToParseXMLException(e.getMessage());
-        }
-        /*for(Person pe : p.getPersonArrayList()){
-            System.out.println(pe.getName() + " " + pe.getAge());
-        }*/
-    }
-
-    private void testMarshallToXML(){
-        People people = new People();
-        ArrayList<Person> p = new ArrayList<>();
-        p.add(new Person("bata", 12));
-        p.add(new Person("patat", 15));
-        people.setPersonArrayList(p);
-
-
-        JAXBContext jaxbContext = null;
-        try {
-            jaxbContext = JAXBContext.newInstance(People.class);
-
-            Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
-
-            jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-
-            //Marshal the employees personArrayList in console
-            jaxbMarshaller.marshal(people, System.out);
-
-            //Marshal the employees personArrayList in file
-            jaxbMarshaller.marshal(people, new File("/home/xxlxpto/people.xml"));
-        } catch (JAXBException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void process(String rootPath)  {
-        _rootFs = rootPath;
-        if(!_force)
-            //processEvtx(filepath);
-        try {
-            getPackReady();
-        } catch (IOException | XPathExpressionException e) {
-            e.printStackTrace();
-        }finally {
-            DatabaseManager.getInstance().disconnect();
-        }
-
     }
 
     private void getPackReady() throws IOException, XPathExpressionException {

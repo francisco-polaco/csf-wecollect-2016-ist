@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.csf.wecollect.domain;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.Event;
 
 import java.util.ArrayList;
-import java.util.IllegalFormatCodePointException;
 
 /**
  * Created by xxlxpto on 28-10-2016.
