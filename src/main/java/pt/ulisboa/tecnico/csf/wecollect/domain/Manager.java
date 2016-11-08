@@ -229,8 +229,8 @@ public class Manager {
         processEventLoggerShutdownEvents(p);
         processLoginEvents(p);
         processLogoutEvents(p);
-        processFirewallEvents(p);
         processPasswordChangesUserEvents(p);
+        processFirewallEvents(p);
 
         p.forceCommitToDb();
 
@@ -464,14 +464,28 @@ public class Manager {
 
     private void processPasswordChangesUserEvents(Pack pack) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "/Events/Event/System/EventID[text()=\"4724\"]";
         InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
-        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
+        // The Subject attempted to reset the password of the Target
+        String otherUserAttempted = "/Events/Event/System/EventID[text()=\"4724\"]";
+        NodeList otherUserAttemptedNodes = (NodeList) xpath.evaluate(otherUserAttempted, inputSource, XPathConstants.NODESET);
 
+        // The user attempted to change his/her own password
+        String userAttempted = "/Events/Event/System/EventID[text()=\"4723\"]";
+        NodeList userAttemptedNodes = (NodeList) xpath.evaluate(userAttempted, inputSource, XPathConstants.NODESET);
+
+        NodeList allNodes[] = {otherUserAttemptedNodes, userAttemptedNodes};
+
+        for (NodeList eachNode : allNodes) {
+            processEachTypePwdChange(eachNode, pack);
+        }
+    }
+
+    private void processEachTypePwdChange(NodeList nodes, Pack pack) {
         for(int i = 0 ; i < nodes.getLength() ; i++) {
             String sid = "";
             String changedBy = "";
+
             Timestamp timestamp = null;
             boolean toSkip = false;
 
@@ -493,14 +507,23 @@ public class Manager {
                         toSkip = true;
                         break;
                     }
+                    // Get the SID of the user that password will change
                     sid = data.item(j).getTextContent();
                 } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                    // Get the SID of the user that change password, the Subject
                     changedBy = data.item(j).getTextContent();
                 }
             }
             if(!toSkip) {
                 try {
-                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), sid, pack.getUserIdBySid(changedBy), false));
+                    //TODO: Check if password will change
+                    pack.addEvent(new PasswordChangesUserEvent(
+                            timestamp,
+                            pack.getComputer().getId(),
+                            Pack.getInstance().getUserIdBySid(sid),
+                            sid,
+                            Pack.getInstance().getUserIdBySid(changedBy),
+                            false));
                 }catch (IllegalStateException e){
                     //System.err.println("Password changes not found");
                 }
