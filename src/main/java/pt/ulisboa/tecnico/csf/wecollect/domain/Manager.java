@@ -214,28 +214,44 @@ public class Manager {
 
     private void processPasswordChangesUserEvents(Pack pack) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "/Events/Event/System/EventID[text()=\"4723\"]";
+        String expression = "/Events/Event/System/EventID[text()=\"4724\"]";
         InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
         for(int i = 0 ; i < nodes.getLength() ; i++) {
+            String sid = "";
+            Timestamp timestamp = null;
+            boolean toSkip = false;
+
+            // TAG Event
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            if(childNodes.item(2) == null) continue;
+            // TAG EventData
+            NodeList data = childNodes.item(2).getChildNodes();
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
 
-            String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
+            for(int j = 0 ; j < data.getLength() ; j+=2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
-            Date parsedDate = null;
-            try {
-                parsedDate = dateFormat.parse(timestampString);
-            } catch (ParseException e) {
-                e.printStackTrace();
+                // The Subject attempted to reset the password of the Target
+                // So, changeBy Subject User
+                if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                    if(!(data.item(j).getTextContent().length() > 8)) {
+                        toSkip = true;
+                        break;
+                    }
+                    sid = data.item(j).getTextContent();
+                }
             }
-            Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
-
-            //TODO: Capture the Changed By
-
-            pack.addEvent(new StartupEvent(timestamp, pack.getComputer().getId()));
+            if(!toSkip) {
+                try {
+                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), sid));
+                }catch (IllegalStateException e){
+                    //System.err.println("User id of this logout event was not found.");
+                }
+            }
         }
     }
 
