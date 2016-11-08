@@ -71,12 +71,18 @@ public class Manager {
 
         for (File file: files) {
             Process p;
+            System.out.println("Processing file: " + evtxDirPath + "/" + file.getName());
+
             try {
-                System.out.println("Processing file: " + evtxDirPath + "/" + file.getName());
                 p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + evtxDirPath + "/" + file.getName());
             } catch (IOException e) {
-                e.printStackTrace();
-                throw new ImpossibleToRunPythonException(e.getMessage());
+                try {
+                    // If user 'python' alias instead of 'python2'. Depending on the installation
+                    p = Runtime.getRuntime().exec("python extras/evtxdump.pyc " + evtxDirPath + "/" + file.getName());
+                } catch (IOException e2) {
+                    e2.printStackTrace();
+                    throw new ImpossibleToRunPythonException(e2.getMessage());
+                }
             }
 
             try(BufferedReader inOut = new BufferedReader(
@@ -159,6 +165,7 @@ public class Manager {
         processLoginEvents(p);
         processLogoutEvents(p);
         processFirewallEvents(p);
+        processPasswordChangesUserEvents(p);
 
         p.forceCommitToDb();
 
@@ -209,52 +216,6 @@ public class Manager {
             Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
 
             pack.addEvent(new StartupEvent(timestamp, pack.getComputer().getId()));
-        }
-    }
-
-    private void processPasswordChangesUserEvents(Pack pack) throws XPathExpressionException {
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "/Events/Event/System/EventID[text()=\"4724\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
-        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
-
-
-        for(int i = 0 ; i < nodes.getLength() ; i++) {
-            String sid = "";
-            String changedBy = "";
-            Timestamp timestamp = null;
-            boolean toSkip = false;
-
-            // TAG Event
-            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
-            if(childNodes.item(2) == null) continue;
-            // TAG EventData
-            NodeList data = childNodes.item(2).getChildNodes();
-            // Timestamp
-            timestamp = getTimestampFromXML(childNodes);
-
-            for(int j = 0 ; j < data.getLength() ; j+=2) {
-                NamedNodeMap attributes = data.item(j).getAttributes();
-
-                // The Subject attempted to reset the password of the Target
-                // So, changeBy Subject User
-                if (attributes.item(0).getNodeValue().equals("TargetSid")) {
-                    if(!(data.item(j).getTextContent().length() > 8)) {
-                        toSkip = true;
-                        break;
-                    }
-                    sid = data.item(j).getTextContent();
-                } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
-                    changedBy = data.item(j).getTextContent();
-                }
-            }
-            if(!toSkip) {
-                try {
-                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), sid, pack.getUserIdBySid(changedBy), false));
-                }catch (IllegalStateException e){
-                    //System.err.println("User id of this logout event was not found.");
-                }
-            }
         }
     }
 
@@ -433,6 +394,52 @@ public class Manager {
             }
         }catch (IOException e){
             e.printStackTrace();
+        }
+    }
+
+    private void processPasswordChangesUserEvents(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"4724\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0 ; i < nodes.getLength() ; i++) {
+            String sid = "";
+            String changedBy = "";
+            Timestamp timestamp = null;
+            boolean toSkip = false;
+
+            // TAG Event
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            if(childNodes.item(2) == null) continue;
+            // TAG EventData
+            NodeList data = childNodes.item(2).getChildNodes();
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+            for(int j = 0 ; j < data.getLength() ; j+=2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                // The Subject attempted to reset the password of the Target
+                // So, changeBy Subject User
+                if (attributes.item(0).getNodeValue().equals("TargetSid")) {
+                    if(!(data.item(j).getTextContent().length() > 8)) {
+                        toSkip = true;
+                        break;
+                    }
+                    sid = data.item(j).getTextContent();
+                } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                    changedBy = data.item(j).getTextContent();
+                }
+            }
+            if(!toSkip) {
+                try {
+                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), sid, pack.getUserIdBySid(changedBy), false));
+                }catch (IllegalStateException e){
+                    //System.err.println("Password changes not found");
+                }
+            }
         }
     }
 
