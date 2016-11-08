@@ -5,8 +5,8 @@ import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import java.sql.Timestamp;
 
 public class PasswordChangesUserEvent extends UserEvent{
-    public PasswordChangesUserEvent(Timestamp timestamp, int computerId, String sid, int changedBy, boolean isSuccess) {
-        super(timestamp, computerId, sid);
+    public PasswordChangesUserEvent(Timestamp timestamp, int computerId, int userId, String sid, int changedBy, boolean isSuccess) {
+        super(timestamp, computerId, userId, sid);
         this.changedBy = changedBy;
         this.isSuccess = isSuccess;
     }

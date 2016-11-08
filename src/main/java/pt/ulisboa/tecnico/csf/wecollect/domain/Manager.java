@@ -163,8 +163,8 @@ public class Manager {
         processEventLoggerShutdownEvents(p);
         processLoginEvents(p);
         processLogoutEvents(p);
-        processFirewallEvents(p);
         processPasswordChangesUserEvents(p);
+        processFirewallEvents(p);
 
         p.forceCommitToDb();
 
@@ -406,6 +406,7 @@ public class Manager {
         for(int i = 0 ; i < nodes.getLength() ; i++) {
             String sid = "";
             String changedBy = "";
+            
             Timestamp timestamp = null;
             boolean toSkip = false;
 
@@ -427,14 +428,23 @@ public class Manager {
                         toSkip = true;
                         break;
                     }
+                    // Get the SID of the user that password will change
                     sid = data.item(j).getTextContent();
                 } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                    // Get the SID of the user that change password, the Subject
                     changedBy = data.item(j).getTextContent();
                 }
             }
             if(!toSkip) {
                 try {
-                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), sid, pack.getUserIdBySid(changedBy), false));
+                    //TODO: Check if password will change
+                    pack.addEvent(new PasswordChangesUserEvent(
+                            timestamp,
+                            pack.getComputer().getId(),
+                            Pack.getInstance().getUserIdBySid(sid),
+                            sid,
+                            Pack.getInstance().getUserIdBySid(changedBy),
+                            false));
                 }catch (IllegalStateException e){
                     //System.err.println("Password changes not found");
                 }
