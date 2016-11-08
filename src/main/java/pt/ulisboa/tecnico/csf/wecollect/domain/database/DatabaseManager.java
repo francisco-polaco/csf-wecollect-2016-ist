@@ -24,9 +24,6 @@ public class DatabaseManager {
         return mInstance;
     }
 
-    private DatabaseManager(){
-        connection = connectToDB();
-    }
 
     private Connection connectToDB(){
         if(connection != null) return connection;
@@ -53,6 +50,7 @@ public class DatabaseManager {
         } catch (SQLException e) {
             throw new IllegalStateException("Cannot connect the database!", e);
         }
+        connection = localConnection;
         return localConnection;
     }
 
@@ -82,7 +80,6 @@ public class DatabaseManager {
                     if (resultSet.getString("name").equals(computer.getName()) && resultSet.getString("sid").equals(computer.getSid())) {
                         resultSet.close();
                         pstmt.close();
-                        disconnect();
                         throw new RegistryAlreadyExistsException(computer.getName(), computer.getSid());
                     }
                 }
@@ -239,6 +236,7 @@ public class DatabaseManager {
             pstmt.setTimestamp(2, passwordChangesUserEvent.getTimestamp());
             pstmt.setInt(3, passwordChangesUserEvent.getChangedBy());
             pstmt.setBoolean(4, passwordChangesUserEvent.isSuccess());
+            pstmt.executeUpdate();
         }catch (SQLException e){
             e.printStackTrace();
         }
