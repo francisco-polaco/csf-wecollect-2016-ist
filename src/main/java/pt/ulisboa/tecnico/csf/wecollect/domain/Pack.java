@@ -19,7 +19,7 @@ public class Pack {
         return instance;
     }
 
-    public Pack(){
+    Pack(){
         instance = this;
     }
 
@@ -28,14 +28,15 @@ public class Pack {
         return events;
     }
 
-    public void addEvent(Event event){
+    void addEvent(Event event){
         events.add(event);
         if(events.size() == LIMIT_EVENTS_ON_RAM){
             forceCommitToDb();
         }
     }
 
-    public void forceCommitToDb() {
+    void forceCommitToDb() {
+        // Optimze by having a thread that is writing in DB and other that is continuing the program
         for (Event e : events) {
             System.out.println(e.toString());
             e.commitToDb();
@@ -48,7 +49,7 @@ public class Pack {
         return computer;
     }
 
-    public void setComputer(Computer computer) {
+    void setComputer(Computer computer) {
         this.computer = computer;
 
     }
@@ -61,9 +62,9 @@ public class Pack {
         return users;
     }
 
-    public int getUserIdBySid(String sid) throws IllegalStateException{
+    int getUserIdBySid(String sid) throws IllegalStateException{
         int indexOfLastDash = sid.lastIndexOf("-");
-        sid = sid.substring(indexOfLastDash + 1);;
+        sid = sid.substring(indexOfLastDash + 1);
         for(User u : users){
             if(u.getUserSid().equals(sid))
                 return u.getId();
@@ -71,7 +72,7 @@ public class Pack {
         throw new IllegalStateException();
     }
 
-    public void setUsers(ArrayList<User> users) {
+    void setUsers(ArrayList<User> users) {
         this.users = users;
     }
 

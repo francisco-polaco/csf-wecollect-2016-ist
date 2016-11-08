@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 
 public abstract class UserEvent extends Event {
 
-    public UserEvent(Timestamp timestamp, int computerId, int userId, String sid) {
+    UserEvent(Timestamp timestamp, int computerId, int userId, String sid) {
         super(timestamp, computerId);
         this.userId = userId;
         this.sid = sid;
@@ -28,7 +28,7 @@ public abstract class UserEvent extends Event {
         this.sid = sid;
     }
 
-    public UserEvent(Timestamp timestamp, int computerId, String sid) {
+    UserEvent(Timestamp timestamp, int computerId, String sid) {
         super(timestamp, computerId);
         this.sid = sid;
     }

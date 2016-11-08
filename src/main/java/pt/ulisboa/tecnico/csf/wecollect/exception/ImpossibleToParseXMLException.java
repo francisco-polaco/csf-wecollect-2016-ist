@@ -1,6 +1,6 @@
 package pt.ulisboa.tecnico.csf.wecollect.exception;
 
-public class ImpossibleToParseXMLException extends WECollectException{
+class ImpossibleToParseXMLException extends WECollectException{
 
     private String mMessage;
 

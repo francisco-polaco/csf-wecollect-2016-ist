@@ -4,7 +4,7 @@ import java.sql.Timestamp;
 
 public abstract class LogUserEvent extends UserEvent {
 
-    public LogUserEvent(Timestamp timestamp, int computerId, int userId, String sid, long loginId, short loginType) {
+    LogUserEvent(Timestamp timestamp, int computerId, int userId, String sid, long loginId, short loginType) {
         super(timestamp, computerId, userId, sid);
         this.loginId = loginId;
         this.loginType = loginType;
@@ -26,7 +26,7 @@ public abstract class LogUserEvent extends UserEvent {
         this.loginType = loginType;
     }
 
-    public LogUserEvent(Timestamp timestamp, int computerId, String sid, long loginId, short loginType) {
+    LogUserEvent(Timestamp timestamp, int computerId, String sid, long loginId, short loginType) {
         super(timestamp, computerId, sid);
         this.loginId = loginId;
         this.loginType = loginType;

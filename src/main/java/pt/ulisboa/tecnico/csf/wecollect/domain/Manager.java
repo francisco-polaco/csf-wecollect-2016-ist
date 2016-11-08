@@ -15,10 +15,15 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 
 public class Manager {
@@ -49,10 +54,31 @@ public class Manager {
         }finally {
             DatabaseManager.getInstance().disconnect();
         }
+        clearTmp();
+    }
 
+    private void clearTmp(){
+        try {
+            Files.deleteIfExists(Paths.get(WORKING_DIR));
+        }catch (DirectoryNotEmptyException e) {
+            File wdir = new File(WORKING_DIR);
+            if(wdir.listFiles() != null) {
+                ArrayList<File> files = new ArrayList<>(Arrays.asList(wdir.listFiles()));
+                for (File f : files) {
+                    if(!f.delete()){
+                        System.err.println(f.getName() + " was not deleted!");
+                    }
+                }
+            }
+            boolean delete = wdir.delete();
+            if(!delete) System.err.println("WDIr not deleted.");
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void processEvtx(String rootFs) throws ImpossibleToRunPythonException{
+
         System.out.println("Starting to process EVTX.");
         if(rootFs.endsWith("/")){ // cleaning the last slash
             System.out.println("Cleaning path");
@@ -62,56 +88,90 @@ public class Manager {
         System.out.println("Checking working folder.");
         checkWorkingFolder();
 
-        // EVTX
-
         String evtxDirPath = rootFs + "/C/Windows/System32/winevt/Logs";
+        ArrayList<File> evtxFiles = prepareAndGetEvtx(evtxDirPath);
 
-        System.out.println("Getting every filename.");
-        ArrayList<File> files = getListOfFilenames(evtxDirPath);
-
-        for (File file: files) {
+        for (File file: evtxFiles) {
             Process p;
             try {
-                System.out.println("Processing file: " + evtxDirPath + "/" + file.getName());
-                p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + evtxDirPath + "/" + file.getName());
+                System.out.println("Processing file: " + file.getAbsolutePath());
+                p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + file.getAbsolutePath());
             } catch (IOException e) {
                 try {
                     // If user 'python' alias instead of 'python2'. Depending on the installation
-                    p = Runtime.getRuntime().exec("python extras/evtxdump.pyc " + evtxDirPath + "/" + file.getName());
+                    p = Runtime.getRuntime().exec("python extras/evtxdump.pyc " + file.getAbsolutePath());
                 } catch (IOException e2) {
                     e2.printStackTrace();
                     throw new ImpossibleToRunPythonException(e2.getMessage());
                 }
             }
 
-            try(BufferedReader inOut = new BufferedReader(
-                    new InputStreamReader(p.getInputStream()))) {
-                String line;
-                String filenameXml = file.getName().replace(".evtx", ".xml");
-                PrintWriter pw = new PrintWriter(new FileWriter(WORKING_DIR + "/" + filenameXml));
+            getXMLReadyForParse(file.getName(), p);
+        }
+    }
 
-                while ((line = inOut.readLine()) != null) {
-                    if(!line.contains("&lt;") || !line.contains("&gt;") ||
-                            !line.contains("&apos;") || !line.contains("%apos;"))
-                        line = line.replaceAll("&", "");
+    private void getXMLReadyForParse(String evtxFilename, Process p) {
+        try(BufferedReader inOut = new BufferedReader(
+                new InputStreamReader(p.getInputStream()))) {
+            //boolean hadErrorOccur = false;
+            String line;
+            String filenameXml = evtxFilename.replace(".evtx", ".xml").replace(" ", "");
+            System.out.println("Writing: " + filenameXml);
+            PrintWriter pw = new PrintWriter(new FileWriter(WORKING_DIR + "/" + filenameXml));
+            while ((line = inOut.readLine()) != null) {
+                //hadErrorOccur = true;
+                if(!line.contains("&lt;") || !line.contains("&gt;") ||
+                    !line.contains("&apos;") || !line.contains("%apos;"))
+                line = line.replaceAll("&", "");
 
-                    if(line.contains("\0")) line = line.replaceAll("\0", "");
+                if(line.contains("\0")) line = line.replaceAll("\0", "");
 
-                    if(line.contains("\1")) line = line.replaceAll("\1", "");
+                if(line.contains("\1")) line = line.replaceAll("\1", "");
 
-                    if(line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
-                        line = line.replaceAll("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "");
+                if(line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
+                    line = line.replaceAll("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "");
 
-                    String xmlIdent = xmlIdent(line);
-                    pw.write(xmlIdent + line + "\n");
+                String xmlIdent = xmlIdent(line);
+                pw.write(xmlIdent + line + "\n");
+            }
+
+            /*if(hadErrorOccur) {
+                // Just to print the errors from python
+                System.err.println("ERROR: Running Python Script!");
+                try(BufferedReader inErr = new BufferedReader(
+                        new InputStreamReader(p.getErrorStream()))) {
+                    String lineErr;
+                    while((lineErr = inErr.readLine()) != null){
+                        System.err.println(lineErr);
+                    }
+                }catch (IOException e){
+                    e.printStackTrace();
                 }
+            }*/
+            pw.close();
 
-                pw.close();
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+    }
 
-            }catch (IOException e){
+    private ArrayList<File> prepareAndGetEvtx(String evtxDirPath) {
+        ArrayList<File> files = new ArrayList<>();
+
+        File security = new File(evtxDirPath + "/Security.evtx");
+        if(security.exists()) files.add(security);
+        File user = new File(evtxDirPath + "/Microsoft-Windows-User Profile Service%4Operational.evtx");
+        if(user.exists()) files.add(user);
+
+        for(File f : files) {
+            try {
+                Files.copy(Paths.get(f.getAbsolutePath()),
+                        Paths.get(WORKING_DIR + "/" + f.getName().replace(" ", "").replace("%4", "").replace("-", "")), REPLACE_EXISTING);
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        return getListOfFiles(WORKING_DIR);
     }
 
     private String xmlIdent(String line) {
@@ -129,14 +189,20 @@ public class Manager {
     }
 
     private void checkWorkingFolder() {
-        if(!(new File(WORKING_DIR).exists())) {
-            if (!(new File(WORKING_DIR).mkdir())) {
+        File f;
+        if (!((f = new File(WORKING_DIR)).exists())) {
+            if (!(f.mkdir())) {
                 throw new ImpossibleToCreateWorkingDirException();
             }
+        } else { // to avoid reusing xml
+            System.out.println("Temporary Directory already exists, deleting it.");
+            f = null;
+            clearTmp();
+            checkWorkingFolder();
         }
     }
 
-    private ArrayList<File> getListOfFilenames(String dirpath) {
+    private ArrayList<File> getListOfFiles(String dirpath) {
         File dir = new File(dirpath);
         if(dir.listFiles() == null){
             throw new DirectoryWithoutFilesException(dirpath);
@@ -347,9 +413,9 @@ public class Manager {
 
     private void processFirewallEvents(Pack pack){
         String fwDirPath = _rootFs + "/C/Windows/System32/LogFiles/Firewall";
-        ArrayList<File> files = getListOfFilenames(fwDirPath);
+        ArrayList<File> files = getListOfFiles(fwDirPath);
         files.removeIf(f -> !(f.getName().endsWith(".log") || ! f.getName().contains(".log.old")));
-        Collections.sort((List)files, (Comparator<String>) new FileExtensionComparator());
+        Collections.sort((List)files, new FileExtensionComparator());
 
         if(files.size() > 1) {
             for (int i = 1; i < files.size(); i++) {
@@ -546,7 +612,7 @@ public class Manager {
         /* This way of doing stuff is just idiot, we need to implement xpath */
         /* I am starting to believe that xpath is just horrible */
         ArrayList<String> res = new ArrayList<>();
-        try (BufferedReader br = new BufferedReader(new FileReader(WORKING_DIR + "/user.xml"))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(WORKING_DIR + "/MicrosoftWindowsUserProfileServiceOperational.xml"))) {
             String line;
             while ((line = br.readLine()) != null) {
                 // process the line.

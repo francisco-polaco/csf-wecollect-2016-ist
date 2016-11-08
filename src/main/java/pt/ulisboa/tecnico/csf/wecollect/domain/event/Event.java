@@ -7,7 +7,7 @@ public abstract class Event {
     private Timestamp timestamp;
     private int computerId;
 
-    public Event(Timestamp timestamp, int computerId) {
+    Event(Timestamp timestamp, int computerId) {
         this.timestamp = timestamp;
         this.computerId = computerId;
     }
