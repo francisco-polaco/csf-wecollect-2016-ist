@@ -71,9 +71,8 @@ public class Manager {
 
         for (File file: files) {
             Process p;
-            System.out.println("Processing file: " + evtxDirPath + "/" + file.getName());
-
             try {
+                System.out.println("Processing file: " + evtxDirPath + "/" + file.getName());
                 p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + evtxDirPath + "/" + file.getName());
             } catch (IOException e) {
                 try {

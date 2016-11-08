@@ -22,6 +22,8 @@ buildNumber.properties
 *.iml
 *.ipr
 
+wdir
+
 # User-specific stuff:
 .idea/workspace.xml
 .idea/tasks.xml
