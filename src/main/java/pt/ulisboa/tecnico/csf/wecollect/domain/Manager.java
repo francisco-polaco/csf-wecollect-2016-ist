@@ -107,6 +107,11 @@ public class Manager {
             }
 
             getXMLReadyForParse(file.getName(), p);
+            try {
+                System.out.println("Exitcode: " + p.waitFor());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
