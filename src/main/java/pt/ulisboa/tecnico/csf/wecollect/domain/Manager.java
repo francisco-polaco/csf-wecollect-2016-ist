@@ -221,6 +221,7 @@ public class Manager {
 
         for(int i = 0 ; i < nodes.getLength() ; i++) {
             String sid = "";
+            String changedBy = "";
             Timestamp timestamp = null;
             boolean toSkip = false;
 
@@ -237,17 +238,19 @@ public class Manager {
 
                 // The Subject attempted to reset the password of the Target
                 // So, changeBy Subject User
-                if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                if (attributes.item(0).getNodeValue().equals("TargetSid")) {
                     if(!(data.item(j).getTextContent().length() > 8)) {
                         toSkip = true;
                         break;
                     }
                     sid = data.item(j).getTextContent();
+                } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                    changedBy = data.item(j).getTextContent();
                 }
             }
             if(!toSkip) {
                 try {
-                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), sid));
+                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), sid, pack.getUserIdBySid(changedBy), false));
                 }catch (IllegalStateException e){
                     //System.err.println("User id of this logout event was not found.");
                 }

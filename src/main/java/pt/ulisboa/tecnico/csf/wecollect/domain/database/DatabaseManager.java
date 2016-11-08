@@ -232,6 +232,18 @@ public class DatabaseManager {
         pstmt.executeUpdate();
     }
 
+    public void commitPasswordChangesUserEvent(PasswordChangesUserEvent passwordChangesUserEvent){
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO pwchanges (user_id, timestamp, changed_by, is_success) VALUES (?, ?, ?, ?);")){
+            pstmt.setInt(1, passwordChangesUserEvent.getUserId());
+            pstmt.setTimestamp(2, passwordChangesUserEvent.getTimestamp());
+            pstmt.setInt(3, passwordChangesUserEvent.getChangedBy());
+            pstmt.setBoolean(4, passwordChangesUserEvent.isSuccess());
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
     public void disconnect(){
         System.out.println("Disconnecting from Database.");
         try {

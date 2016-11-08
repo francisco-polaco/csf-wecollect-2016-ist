@@ -1,10 +1,25 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain.event;
 
+import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
+
 import java.sql.Timestamp;
 
 public class PasswordChangesUserEvent extends UserEvent{
-    public PasswordChangesUserEvent(Timestamp timestamp, int computerId, String sid) {
+    public PasswordChangesUserEvent(Timestamp timestamp, int computerId, String sid, int changedBy, boolean isSuccess) {
         super(timestamp, computerId, sid);
+        this.changedBy = changedBy;
+        this.isSuccess = isSuccess;
+    }
+
+    private int changedBy;
+    private boolean isSuccess;
+
+    public boolean isSuccess() {
+        return isSuccess;
+    }
+
+    public void setSuccess(boolean success) {
+        isSuccess = success;
     }
 
     public int getChangedBy() {
@@ -15,11 +30,9 @@ public class PasswordChangesUserEvent extends UserEvent{
         this.changedBy = changedBy;
     }
 
-    private int changedBy;
-
     @Override
     public void commitToDb() {
-
+        DatabaseManager.getInstance().commitPasswordChangesUserEvent(this);
     }
 
     @Override
