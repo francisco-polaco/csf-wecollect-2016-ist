@@ -102,7 +102,7 @@ public class DatabaseManager {
             pstmt.setString(1, computer.getName());
             pstmt.setString(2, computer.getSid());
             ResultSet resultSet = pstmt.executeQuery();
-            if(resultSet.next()) computer.setId(resultSet.getInt("id"));
+            while(resultSet.next()) computer.setId(resultSet.getInt("id"));
             resultSet.close();
         }catch (SQLException e) {
             e.printStackTrace();
