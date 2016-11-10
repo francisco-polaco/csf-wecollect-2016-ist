@@ -231,12 +231,22 @@ public class DatabaseManager {
 
     public void commitPasswordChangesUserEvent(PasswordChangesUserEvent passwordChangesUserEvent){
         Connection conn = connectToDB();
-        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO pwchanges (user_id, timestamp, changed_by, is_success) VALUES (?, ?, ?, ?);")){
-
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO pwchanges (user_id, timestamp, changed_by) VALUES (?, ?, ?);")){
             pstmt.setInt(1, passwordChangesUserEvent.getUserId());
             pstmt.setTimestamp(2, passwordChangesUserEvent.getTimestamp());
             pstmt.setInt(3, passwordChangesUserEvent.getChangedBy());
-            pstmt.setBoolean(4, passwordChangesUserEvent.isSuccess());
+            pstmt.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public void commitUpdateEvents(UpdateEvent updateEvent) {
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO updates (timestamp, computer_id, name) VALUES (?, ?, ?);")){
+            pstmt.setTimestamp(1, updateEvent.getTimestamp());
+            pstmt.setInt(2, updateEvent.getComputerId());
+            pstmt.setString(3, updateEvent.getUpdateTitle());
             pstmt.executeUpdate();
         }catch (SQLException e){
             e.printStackTrace();

@@ -304,6 +304,38 @@ public class Manager {
 
     }
 
+    private void processUpdates(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"41\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/Microsoft-Windows-WindowsUpdateClient%4Operational.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0 ; i < nodes.getLength() ; i++) {
+            Timestamp timestamp = null;
+            String updateTitle = "";
+            boolean toSkip = false;
+
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+
+            // TAG EventData
+            if(childNodes.item(2) == null) continue;
+            NodeList data = childNodes.item(2).getChildNodes();
+
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+            for(int j = 0 ; j < data.getLength() ; j+=2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                if (attributes.item(0).getNodeValue().equals("updateTitle")) {
+                    updateTitle = data.item(j).getTextContent();
+                    pack.addEvent(new UpdateEvent(timestamp, pack.getComputer().getId(), updateTitle));
+                }
+            }
+        }
+    }
+
     private void processLogoutEvents(Pack pack) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"4634\"]";
@@ -521,14 +553,12 @@ public class Manager {
             }
             if(!toSkip) {
                 try {
-                    //TODO: Check if password will change
                     pack.addEvent(new PasswordChangesUserEvent(
                             timestamp,
                             pack.getComputer().getId(),
                             Pack.getInstance().getUserIdBySid(sid),
                             sid,
-                            Pack.getInstance().getUserIdBySid(changedBy),
-                            false));
+                            Pack.getInstance().getUserIdBySid(changedBy)));
                 }catch (IllegalStateException e){
                     //System.err.println("Password changes not found");
                 }
