@@ -169,6 +169,8 @@ public class Manager {
         if(user.exists()) files.add(user);
         File updates = new File(evtxDirPath + "/Microsoft-Windows-WindowsUpdateClient%4Operational.evtx");
         if(updates.exists()) files.add(updates);
+        File appAccess = new File(evtxDirPath + "/Microsoft-Windows-TWinUI%4Operational.evtx");
+        if(appAccess.exists()) files.add(appAccess);
 
         for(File f : files) {
             try {
@@ -448,6 +450,34 @@ public class Manager {
                     //System.err.println("User id of this login event was not found.");
                 }
             }
+        }
+    }
+
+    private void processAppAccessesEvents(Pack pack) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"5950\"]";
+        InputSource inputSource = new InputSource(WORKING_DIR + "/MicrosoftWindowsTWinUIOperational.xml");
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+
+        for(int i = 0; i < nodes.getLength() ; i++){
+            String appAccess = "";
+            Timestamp timestamp = null;
+            boolean toSkip = false;
+
+
+            // TAG Event
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+            // TAG System
+            if(childNodes.item(0) == null) continue;
+            String sid = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("UserID").getTextContent();
+
+
+
         }
     }
 
