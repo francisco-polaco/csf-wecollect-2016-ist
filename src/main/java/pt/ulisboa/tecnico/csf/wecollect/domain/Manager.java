@@ -231,6 +231,7 @@ public class Manager {
 
         // Events
         processStartupEvents(p);
+        processUpdates(p);
         processEventLoggerShutdownEvents(p);
         processLoginEvents(p);
         processLogoutEvents(p);
