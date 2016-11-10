@@ -167,6 +167,8 @@ public class Manager {
         if(security.exists()) files.add(security);
         File user = new File(evtxDirPath + "/Microsoft-Windows-User Profile Service%4Operational.evtx");
         if(user.exists()) files.add(user);
+        File updates = new File(evtxDirPath + "/Microsoft-Windows-WindowsUpdateClient%4Operational.evtx");
+        if(updates.exists()) files.add(updates);
 
         for(File f : files) {
             try {
@@ -308,7 +310,7 @@ public class Manager {
     private void processUpdates(Pack pack) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"41\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/Microsoft-Windows-WindowsUpdateClient%4Operational.xml");
+        InputSource inputSource = new InputSource(WORKING_DIR + "/MicrosoftWindowsWindowsUpdateClientOperational.xml");
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
