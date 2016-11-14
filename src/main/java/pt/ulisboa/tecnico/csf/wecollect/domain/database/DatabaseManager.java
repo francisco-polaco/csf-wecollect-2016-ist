@@ -241,6 +241,18 @@ public class DatabaseManager {
         }
     }
 
+    public void commitAppAccessEvent(AppAccessEvent appAccessEvent){
+        Connection conn = connectToDB();
+        try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO appsaccesses (user_id, timestamp, name) VALUES (?, ?, ?);")){
+            pstmt.setInt(1, appAccessEvent.getUserId());
+            pstmt.setTimestamp(2, appAccessEvent.getTimestamp());
+            pstmt.setString(3, appAccessEvent.getAppId());
+            pstmt.executeUpdate();
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+    }
+
     public void commitUpdateEvents(UpdateEvent updateEvent) {
         Connection conn = connectToDB();
         try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO updates (timestamp, computer_id, name) VALUES (?, ?, ?);")){

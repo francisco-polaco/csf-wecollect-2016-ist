@@ -36,51 +36,51 @@ public class Manager {
 
     private static Manager mInstance;
 
-    public static Manager getInstance(){
-        if(mInstance == null){
+    public static Manager getInstance() {
+        if (mInstance == null) {
             mInstance = new Manager();
         }
         return mInstance;
     }
 
-    public void process(String rootPath)  {
+    public void process(String rootPath) {
         _rootFs = rootPath;
-        if(!_force)
+        if (!_force)
             processEvtx(rootPath);
         try {
             getPackReady();
         } catch (IOException | XPathExpressionException e) {
             e.printStackTrace();
-        }finally {
+        } finally {
             DatabaseManager.getInstance().disconnect();
         }
         clearTmp();
     }
 
-    private void clearTmp(){
+    private void clearTmp() {
         try {
             Files.deleteIfExists(Paths.get(WORKING_DIR));
-        }catch (DirectoryNotEmptyException e) {
+        } catch (DirectoryNotEmptyException e) {
             File wdir = new File(WORKING_DIR);
-            if(wdir.listFiles() != null) {
+            if (wdir.listFiles() != null) {
                 ArrayList<File> files = new ArrayList<>(Arrays.asList(wdir.listFiles()));
                 for (File f : files) {
-                    if(!f.delete()){
+                    if (!f.delete()) {
                         System.err.println(f.getName() + " was not deleted!");
                     }
                 }
             }
             boolean delete = wdir.delete();
-            if(!delete) System.err.println("WDIr not deleted.");
-        }catch (IOException e) {
+            if (!delete) System.err.println("WDIr not deleted.");
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void processEvtx(String rootFs) throws ImpossibleToRunPythonException{
+    private void processEvtx(String rootFs) throws ImpossibleToRunPythonException {
 
         System.out.println("Starting to process EVTX.");
-        if(rootFs.endsWith("/")){ // cleaning the last slash
+        if (rootFs.endsWith("/")) { // cleaning the last slash
             System.out.println("Cleaning path");
             rootFs = rootFs.substring(0, rootFs.length() - 1);
         }
@@ -91,7 +91,7 @@ public class Manager {
         String evtxDirPath = rootFs + "/C/Windows/System32/winevt/Logs";
         ArrayList<File> evtxFiles = prepareAndGetEvtx(evtxDirPath);
 
-        for (File file: evtxFiles) {
+        for (File file : evtxFiles) {
             Process p;
             try {
                 System.out.println("Processing file: " + file.getAbsolutePath());
@@ -116,7 +116,7 @@ public class Manager {
     }
 
     private void getXMLReadyForParse(String evtxFilename, Process p) {
-        try(BufferedReader inOut = new BufferedReader(
+        try (BufferedReader inOut = new BufferedReader(
                 new InputStreamReader(p.getInputStream()))) {
             //boolean hadErrorOccur = false;
             String line;
@@ -125,15 +125,15 @@ public class Manager {
             PrintWriter pw = new PrintWriter(new FileWriter(WORKING_DIR + "/" + filenameXml));
             while ((line = inOut.readLine()) != null) {
                 //hadErrorOccur = true;
-                if(!line.contains("&lt;") || !line.contains("&gt;") ||
-                    !line.contains("&apos;") || !line.contains("%apos;"))
-                line = line.replaceAll("&", "");
+                if (!line.contains("&lt;") || !line.contains("&gt;") ||
+                        !line.contains("&apos;") || !line.contains("%apos;"))
+                    line = line.replaceAll("&", "");
 
-                if(line.contains("\0")) line = line.replaceAll("\0", "");
+                if (line.contains("\0")) line = line.replaceAll("\0", "");
 
-                if(line.contains("\1")) line = line.replaceAll("\1", "");
+                if (line.contains("\1")) line = line.replaceAll("\1", "");
 
-                if(line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
+                if (line.contains("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\""))
                     line = line.replaceAll("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "");
 
                 String xmlIdent = xmlIdent(line);
@@ -155,7 +155,7 @@ public class Manager {
             }*/
             pw.close();
 
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -164,15 +164,15 @@ public class Manager {
         ArrayList<File> files = new ArrayList<>();
 
         File security = new File(evtxDirPath + "/Security.evtx");
-        if(security.exists()) files.add(security);
+        if (security.exists()) files.add(security);
         File user = new File(evtxDirPath + "/Microsoft-Windows-User Profile Service%4Operational.evtx");
-        if(user.exists()) files.add(user);
+        if (user.exists()) files.add(user);
         File updates = new File(evtxDirPath + "/Microsoft-Windows-WindowsUpdateClient%4Operational.evtx");
-        if(updates.exists()) files.add(updates);
+        if (updates.exists()) files.add(updates);
         File appAccess = new File(evtxDirPath + "/Microsoft-Windows-TWinUI%4Operational.evtx");
-        if(appAccess.exists()) files.add(appAccess);
+        if (appAccess.exists()) files.add(appAccess);
 
-        for(File f : files) {
+        for (File f : files) {
             try {
                 Files.copy(Paths.get(f.getAbsolutePath()),
                         Paths.get(WORKING_DIR + "/" + f.getName().replace(" ", "").replace("%4", "").replace("-", "")), REPLACE_EXISTING);
@@ -185,11 +185,11 @@ public class Manager {
 
     private String xmlIdent(String line) {
         String xmlIdent = "";
-        if(!(line.startsWith("<Events>") || line.startsWith("</Events>") || line.startsWith("<?xml")) ){
+        if (!(line.startsWith("<Events>") || line.startsWith("</Events>") || line.startsWith("<?xml"))) {
             xmlIdent += "\t";
-            if(!(line.startsWith("<Event >") || line.startsWith("</Event>"))){
+            if (!(line.startsWith("<Event >") || line.startsWith("</Event>"))) {
                 xmlIdent += "\t";
-                if(line.startsWith("<Data ")){
+                if (line.startsWith("<Data ")) {
                     xmlIdent += "\t";
                 }
             }
@@ -213,14 +213,14 @@ public class Manager {
 
     private ArrayList<File> getListOfFiles(String dirpath) {
         File dir = new File(dirpath);
-        if(dir.listFiles() == null){
+        if (dir.listFiles() == null) {
             throw new DirectoryWithoutFilesException(dirpath);
         }
         ArrayList<File> files = new ArrayList<>(Arrays.asList(dir.listFiles()));
 
         for (File f : files) {
             String filename = f.getName();
-            if(f.isDirectory() || filename.equals(".") || filename.equals("..") ){
+            if (f.isDirectory() || filename.equals(".") || filename.equals("..")) {
                 files.remove(f);
             }
         }
@@ -240,6 +240,7 @@ public class Manager {
         processLoginEvents(p);
         processLogoutEvents(p);
         processPasswordChangesUserEvents(p);
+        processAppAccessesEvents(p);
         processFirewallEvents(p);
 
         p.forceCommitToDb();
@@ -276,7 +277,7 @@ public class Manager {
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
-        for(int i = 0 ; i < nodes.getLength() ; i++) {
+        for (int i = 0; i < nodes.getLength(); i++) {
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
             // Don't ask me, we are doing a travel through the tree :D
             String timestampString = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("SystemTime").getTextContent();
@@ -301,7 +302,7 @@ public class Manager {
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
-        for(int i = 0 ; i < nodes.getLength() ; i++) {
+        for (int i = 0; i < nodes.getLength(); i++) {
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
             Timestamp timestamp = getTimestampFromXML(childNodes);
             pack.addEvent(new ShutdownEvent(timestamp, pack.getComputer().getId()));
@@ -316,7 +317,7 @@ public class Manager {
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
-        for(int i = 0 ; i < nodes.getLength() ; i++) {
+        for (int i = 0; i < nodes.getLength(); i++) {
             Timestamp timestamp = null;
             String updateTitle = "";
             boolean toSkip = false;
@@ -324,13 +325,13 @@ public class Manager {
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
 
             // TAG EventData
-            if(childNodes.item(2) == null) continue;
+            if (childNodes.item(2) == null) continue;
             NodeList data = childNodes.item(2).getChildNodes();
 
             // Timestamp
             timestamp = getTimestampFromXML(childNodes);
 
-            for(int j = 0 ; j < data.getLength() ; j+=2) {
+            for (int j = 0; j < data.getLength(); j += 2) {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("updateTitle")) {
@@ -348,7 +349,7 @@ public class Manager {
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
-        for(int i = 0; i < nodes.getLength() ; i++){
+        for (int i = 0; i < nodes.getLength(); i++) {
             String sid = "";
             String logonId = "";
             String loginType = "";
@@ -358,7 +359,7 @@ public class Manager {
 
             // TAG Event
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
-            if(childNodes.item(2) == null) continue;
+            if (childNodes.item(2) == null) continue;
             // TAG EventData
             NodeList data = childNodes.item(2).getChildNodes();
 
@@ -366,30 +367,28 @@ public class Manager {
             timestamp = getTimestampFromXML(childNodes);
 
 
-            for(int j = 0 ; j < data.getLength() ; j+=2) {
+            for (int j = 0; j < data.getLength(); j += 2) {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserSid")) {
-                    if(!(data.item(j).getTextContent().length() > 8)) { // special sids
+                    if (!(data.item(j).getTextContent().length() > 8)) { // special sids
                         // We shall not reveal god to the mundane people
                         toSkip = true;
                         break;
                     }
                     sid = data.item(j).getTextContent();
-                }
-                else if (attributes.item(0).getNodeValue().equals("TargetLogonId")) {
+                } else if (attributes.item(0).getNodeValue().equals("TargetLogonId")) {
                     logonId = data.item(j).getTextContent();
-                }
-                else if (attributes.item(0).getNodeValue().equals("LogonType")) {
+                } else if (attributes.item(0).getNodeValue().equals("LogonType")) {
                     loginType = data.item(j).getTextContent();
                 }
 
             }
-            if(!toSkip) {
+            if (!toSkip) {
                 try {
                     pack.addEvent(new LogoutUserEvent(timestamp, pack.getComputer().getId(), Pack.getInstance().getUserIdBySid(sid), sid,
                             new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
-                }catch (IllegalStateException e){
+                } catch (IllegalStateException e) {
                     //System.err.println("User id of this logout event was not found.");
                 }
             }
@@ -404,7 +403,7 @@ public class Manager {
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
-        for(int i = 0; i < nodes.getLength() ; i++){
+        for (int i = 0; i < nodes.getLength(); i++) {
             String sid = "";
             String logonId = "";
             String loginType = "";
@@ -414,7 +413,7 @@ public class Manager {
 
             // TAG Event
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
-            if(childNodes.item(2) == null) continue;
+            if (childNodes.item(2) == null) continue;
             // TAG EventData
             NodeList data = childNodes.item(2).getChildNodes();
 
@@ -422,26 +421,24 @@ public class Manager {
             timestamp = getTimestampFromXML(childNodes);
 
 
-            for(int j = 0 ; j < data.getLength() ; j+=2) {
+            for (int j = 0; j < data.getLength(); j += 2) {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserSid")) {
-                    if(!(data.item(j).getTextContent().length() > 8)) { // special sids
+                    if (!(data.item(j).getTextContent().length() > 8)) { // special sids
                         // We shall not reveal god to the mundane people
                         toSkip = true;
                         break;
                     }
                     sid = data.item(j).getTextContent();
-                }
-                else if (attributes.item(0).getNodeValue().equals("TargetLogonId")) {
+                } else if (attributes.item(0).getNodeValue().equals("TargetLogonId")) {
                     logonId = data.item(j).getTextContent();
-                }
-                else if (attributes.item(0).getNodeValue().equals("LogonType")) {
+                } else if (attributes.item(0).getNodeValue().equals("LogonType")) {
                     loginType = data.item(j).getTextContent();
                 }
 
             }
-            if(!toSkip) {
+            if (!toSkip) {
                 try {
                     pack.addEvent(new LoginUserEvent(timestamp, pack.getComputer().getId(), Pack.getInstance().getUserIdBySid(sid), sid,
                             new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
@@ -460,53 +457,70 @@ public class Manager {
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
-        for(int i = 0; i < nodes.getLength() ; i++){
-            String appAccess = "";
-            Timestamp timestamp = null;
-            boolean toSkip = false;
-
+        for (int i = 0; i < nodes.getLength(); i++) {
+            String appId = "";
 
             // TAG Event
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
 
             // Timestamp
-            timestamp = getTimestampFromXML(childNodes);
+            Timestamp timestamp = getTimestampFromXML(childNodes);
 
             // TAG System
-            if(childNodes.item(0) == null) continue;
-            String sid = childNodes.item(0).getChildNodes().item(14).getAttributes().getNamedItem("UserID").getTextContent();
+            if (childNodes.item(0) == null) continue;
+            String sid = childNodes.item(0).getChildNodes().item(26).getAttributes().getNamedItem("UserID").getTextContent();
 
+            // TAG EventData
+            if (childNodes.item(2) == null) continue;
+            NodeList data = childNodes.item(2).getChildNodes();
+            NamedNodeMap attributes = data.item(0).getAttributes();
 
+            // Get App ID
+            if (attributes.item(0).getNodeValue().equals("AppId")) {
+                appId = data.item(0).getTextContent();
+            }
+
+            try {
+                pack.addEvent(new AppAccessEvent(
+                        timestamp,
+                        pack.getComputer().getId(),
+                        Pack.getInstance().getUserIdBySid(sid),
+                        sid,
+                        appId ));
+
+            } catch (IllegalStateException e) {
+                //System.err.println("User id of this login event was not found.");
+            }
 
         }
     }
 
-    private void processFirewallEvents(Pack pack){
+    private void processFirewallEvents(Pack pack) {
         String fwDirPath = _rootFs + "/C/Windows/System32/LogFiles/Firewall";
         ArrayList<File> files = getListOfFiles(fwDirPath);
-        files.removeIf(f -> !(f.getName().endsWith(".log") || ! f.getName().contains(".log.old")));
-        Collections.sort((List)files, new FileExtensionComparator());
+        files.removeIf(f -> !(f.getName().endsWith(".log") || !f.getName().contains(".log.old")));
+        Collections.sort((List) files, new FileExtensionComparator());
 
-        if(files.size() > 1) {
+        if (files.size() > 1) {
             for (int i = 1; i < files.size(); i++) {
                 System.out.println("Firewall log.");
                 processFirewallFile(files.get(i), pack);
             }
         }
-        if(files.size() > 0)
+        if (files.size() > 0)
             processFirewallFile(files.get(0), pack); // most recent file
     }
 
     private void processFirewallFile(File file, Pack pack) {
-        try(BufferedReader br = new BufferedReader(new FileReader(file))){
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
             String line;
-            while((line = br.readLine()) != null){
+            while ((line = br.readLine()) != null) {
                 if ((line.startsWith("1") || line.startsWith("2"))) // should be enough for some years
                 {
                     String[] tokens = line.split(" ");
                     boolean allow = false;
-                    if(tokens[2].equals("ALLOW")) allow = true;
-                    if(!(tokens[3].equals("TCP") || tokens[3].equals("UDP"))) continue;
+                    if (tokens[2].equals("ALLOW")) allow = true;
+                    if (!(tokens[3].equals("TCP") || tokens[3].equals("UDP"))) continue;
                     // TODO timestamp
                     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                     Date parsedDate = null;
@@ -521,13 +535,13 @@ public class Manager {
                     try {
                         pack.addEvent(new FirewallEvent(timestamp, pack.getComputer().getId(), allow, tokens[3], tokens[4], tokens[5],
                                 Integer.parseInt(tokens[6]), Integer.parseInt(tokens[7])));
-                    }catch (IllegalArgumentException e){
+                    } catch (IllegalArgumentException e) {
                         continue; // skip this one
                     }
 
                 }
             }
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -552,7 +566,7 @@ public class Manager {
     }
 
     private void processEachTypePwdChange(NodeList nodes, Pack pack) {
-        for(int i = 0 ; i < nodes.getLength() ; i++) {
+        for (int i = 0; i < nodes.getLength(); i++) {
             String sid = "";
             String changedBy = "";
 
@@ -561,19 +575,19 @@ public class Manager {
 
             // TAG Event
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
-            if(childNodes.item(2) == null) continue;
+            if (childNodes.item(2) == null) continue;
             // TAG EventData
             NodeList data = childNodes.item(2).getChildNodes();
             // Timestamp
             timestamp = getTimestampFromXML(childNodes);
 
-            for(int j = 0 ; j < data.getLength() ; j+=2) {
+            for (int j = 0; j < data.getLength(); j += 2) {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 // The Subject attempted to reset the password of the Target
                 // So, changeBy Subject User
                 if (attributes.item(0).getNodeValue().equals("TargetSid")) {
-                    if(!(data.item(j).getTextContent().length() > 8)) {
+                    if (!(data.item(j).getTextContent().length() > 8)) {
                         toSkip = true;
                         break;
                     }
@@ -584,7 +598,7 @@ public class Manager {
                     changedBy = data.item(j).getTextContent();
                 }
             }
-            if(!toSkip) {
+            if (!toSkip) {
                 try {
                     pack.addEvent(new PasswordChangesUserEvent(
                             timestamp,
@@ -592,7 +606,7 @@ public class Manager {
                             Pack.getInstance().getUserIdBySid(sid),
                             sid,
                             Pack.getInstance().getUserIdBySid(changedBy)));
-                }catch (IllegalStateException e){
+                } catch (IllegalStateException e) {
                     //System.err.println("Password changes not found");
                 }
             }
@@ -615,7 +629,7 @@ public class Manager {
         InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
-        for(int i = 0; i < nodes.getLength() ; i++){
+        for (int i = 0; i < nodes.getLength(); i++) {
             String username = "";
             String sid = "";
             String createdBySid = "";
@@ -633,30 +647,28 @@ public class Manager {
             timestamp = getTimestampFromXML(childNodes);
 
 
-            for(int j = 0 ; j < data.getLength() ; j+=2) {
+            for (int j = 0; j < data.getLength(); j += 2) {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserName")) {
-                    if(data.item(j).getTextContent().equals("defaultuser0")) {
+                    if (data.item(j).getTextContent().equals("defaultuser0")) {
                         // We shall not reveal god to the mundane people
                         toSkip = true;
                         break;
                     }
                     username = data.item(j).getTextContent();
-                }
-                else if (attributes.item(0).getNodeValue().equals("TargetSid")) {
+                } else if (attributes.item(0).getNodeValue().equals("TargetSid")) {
                     int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
                     sid = data.item(j).getTextContent().substring(indexOfLastDash + 1);
-                }
-                else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
                     int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
 
-                    if(data.item(j).getTextContent().substring(indexOfLastDash + 1).equals("18")){
+                    if (data.item(j).getTextContent().substring(indexOfLastDash + 1).equals("18")) {
                         // God created this account, so with will not reveal that god exists
                         createdBySid = null;
                         createdByUname = null;
                         break;
-                    }else {
+                    } else {
 
                         for (User u : userArrayList) {
                             if (u.getUserSid().equals(data.item(j).getTextContent().substring(indexOfLastDash + 1))) {
@@ -668,13 +680,12 @@ public class Manager {
 
                         createdBySid = data.item(j).getTextContent().substring(indexOfLastDash + 1);
                     }
-                }
-                else if (attributes.item(0).getNodeValue().equals("SubjectUserName")) {
+                } else if (attributes.item(0).getNodeValue().equals("SubjectUserName")) {
                     createdByUname = data.item(j).getTextContent();
                 }
 
             }
-            if(!toSkip) userArrayList.add(new User(sid, username, createdBySid, createdByUname, timestamp));
+            if (!toSkip) userArrayList.add(new User(sid, username, createdBySid, createdByUname, timestamp));
 
         }
         return userArrayList;
@@ -708,17 +719,16 @@ public class Manager {
             while ((line = br.readLine()) != null) {
                 // process the line.
                 line = line.replace("\t", "");
-                if(line.startsWith("<Computer>")){
+                if (line.startsWith("<Computer>")) {
                     int index = line.indexOf("<", 10);
                     res.add(0, line.substring(10, index));
 
-                }
-                else if(line.startsWith("<Data Name=\"Key\">")){
+                } else if (line.startsWith("<Data Name=\"Key\">")) {
                     String[] split = line.split("-");
                     res.add(1, split[3] + "-" + split[4] + "-" + split[5] + "-" + split[6]);
                 }
 
-                if(res.size() == 2) break; // all info collected
+                if (res.size() == 2) break; // all info collected
             }
         }
         return res;
