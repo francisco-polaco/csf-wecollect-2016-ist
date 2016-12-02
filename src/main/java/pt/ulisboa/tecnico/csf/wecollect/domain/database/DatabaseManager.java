@@ -265,6 +265,33 @@ public class DatabaseManager {
         }
     }
 
+    public void commitWifiEvents(WifiEvent wifiEvent) {
+        Connection conn = connectToDB();
+        // Check if connect or disconnect
+        if (wifiEvent.getConnect()) {
+            // If Wifi event is a connection to a Access Point
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO wificonnects (timestamp, computer_id, name) VALUES (?, ?, ?);")){
+                pstmt.setTimestamp(1, wifiEvent.getTimestamp());
+                pstmt.setInt(2, wifiEvent.getComputerId());
+                pstmt.setString(3, wifiEvent.getSsid());
+                pstmt.executeUpdate();
+            }catch (SQLException e){
+                e.printStackTrace();
+            }
+        } else {
+            // If Wifi event is a disconnection to a Access Point
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO wifidisconnects (timestamp, computer_id, name) VALUES (?, ?, ?);")){
+                pstmt.setTimestamp(1, wifiEvent.getTimestamp());
+                pstmt.setInt(2, wifiEvent.getComputerId());
+                pstmt.setString(3, wifiEvent.getSsid());
+                pstmt.executeUpdate();
+            }catch (SQLException e){
+                e.printStackTrace();
+            }
+        }
+
+    }
+
     public void disconnect(){
         System.out.println("Disconnecting from Database.");
         try {

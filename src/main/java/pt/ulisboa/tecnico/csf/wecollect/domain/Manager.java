@@ -171,6 +171,8 @@ public class Manager {
         if (updates.exists()) files.add(updates);
         File appAccess = new File(evtxDirPath + "/Microsoft-Windows-TWinUI%4Operational.evtx");
         if (appAccess.exists()) files.add(appAccess);
+        File wifi = new File(evtxDirPath + "/Microsoft-Windows-WLAN-AutoConfig%4Operational.evtx");
+        if (wifi.exists()) files.add(wifi);
 
         for (File f : files) {
             try {
@@ -233,14 +235,24 @@ public class Manager {
         processUsers(p);
 
 
-        // Events
-        processStartupEvents(p);
-        processUpdates(p);
-        processEventLoggerShutdownEvents(p);
-        processLoginEvents(p);
-        processLogoutEvents(p);
-        processPasswordChangesUserEvents(p);
-        processAppAccessesEvents(p);
+        // Check first if XML files exist. If yes, process each event
+
+        File xmlSecurity = new File(WORKING_DIR + "/Security.xml");
+        if (xmlSecurity.exists() && !xmlSecurity.isDirectory()) processStartupEvents(p, xmlSecurity.getPath());
+        if (xmlSecurity.exists() && !xmlSecurity.isDirectory()) processEventLoggerShutdownEvents(p, xmlSecurity.getPath());
+        if (xmlSecurity.exists() && !xmlSecurity.isDirectory()) processLoginEvents(p, xmlSecurity.getPath());
+        if (xmlSecurity.exists() && !xmlSecurity.isDirectory()) processLogoutEvents(p, xmlSecurity.getPath());
+        if (xmlSecurity.exists() && !xmlSecurity.isDirectory()) processPasswordChangesUserEvents(p, xmlSecurity.getPath());
+
+        File xmlUpdate = new File(WORKING_DIR + "/MicrosoftWindowsWindowsUpdateClientOperational.xml");
+        if (xmlUpdate.exists() && !xmlUpdate.isDirectory()) processUpdates(p, xmlUpdate.getPath());
+
+        File xmlWifi = new File(WORKING_DIR + "/MicrosoftWindowsWLANAutoConfigOperational.xml");
+        if (xmlWifi.exists() && !xmlWifi.isDirectory()) processWifi(p, xmlWifi.getPath());
+
+        File xmlAppAccesses = new File(WORKING_DIR + "/MicrosoftWindowsTWinUIOperational.xml");
+        if (xmlAppAccesses.exists() && !xmlAppAccesses.isDirectory()) processAppAccessesEvents(p, xmlAppAccesses.getPath());
+
         processFirewallEvents(p);
 
         p.forceCommitToDb();
@@ -270,10 +282,10 @@ public class Manager {
         DatabaseManager.getInstance().commitUsers(p);
     }
 
-    private void processStartupEvents(Pack pack) throws XPathExpressionException {
+    private void processStartupEvents(Pack pack, String xmlPath) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"4608\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        InputSource inputSource = new InputSource(xmlPath);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
@@ -295,10 +307,10 @@ public class Manager {
         }
     }
 
-    private void processEventLoggerShutdownEvents(Pack pack) throws XPathExpressionException {
+    private void processEventLoggerShutdownEvents(Pack pack, String xmlPath) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"1100\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        InputSource inputSource = new InputSource(xmlPath);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
@@ -310,18 +322,81 @@ public class Manager {
 
     }
 
-    private void processUpdates(Pack pack) throws XPathExpressionException {
+    private void processPasswordChangesUserEvents(Pack pack, String xmlPath) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        InputSource inputSource = new InputSource(xmlPath);
+
+        // The Subject attempted to reset the password of the Target
+        String otherUserAttempted = "/Events/Event/System/EventID[text()=\"4724\"]";
+        NodeList otherUserAttemptedNodes = (NodeList) xpath.evaluate(otherUserAttempted, inputSource, XPathConstants.NODESET);
+
+        // The user attempted to change his/her own password
+        String userAttempted = "/Events/Event/System/EventID[text()=\"4723\"]";
+        NodeList userAttemptedNodes = (NodeList) xpath.evaluate(userAttempted, inputSource, XPathConstants.NODESET);
+
+        NodeList allNodes[] = {otherUserAttemptedNodes, userAttemptedNodes};
+
+        for (NodeList eachNode : allNodes) {
+            processEachTypePwdChange(eachNode, pack);
+        }
+    }
+
+    private void processEachTypePwdChange(NodeList nodes, Pack pack) {
+        for (int i = 0; i < nodes.getLength(); i++) {
+            String sid = "";
+            String changedBy = "";
+
+            Timestamp timestamp = null;
+            boolean toSkip = false;
+
+            // TAG Event
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+            if (childNodes.item(2) == null) continue;
+            // TAG EventData
+            NodeList data = childNodes.item(2).getChildNodes();
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+            for (int j = 0; j < data.getLength(); j += 2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                // The Subject attempted to reset the password of the Target
+                // So, changeBy Subject User
+                if (attributes.item(0).getNodeValue().equals("TargetSid")) {
+                    if (!(data.item(j).getTextContent().length() > 8)) {
+                        toSkip = true;
+                        break;
+                    }
+                    // Get the SID of the user that password will change
+                    sid = data.item(j).getTextContent();
+                } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
+                    // Get the SID of the user that change password, the Subject
+                    changedBy = data.item(j).getTextContent();
+                }
+            }
+            if (!toSkip) {
+                try {
+                    pack.addEvent(new PasswordChangesUserEvent(
+                            timestamp,
+                            pack.getComputer().getId(),
+                            Pack.getInstance().getUserIdBySid(sid),
+                            sid,
+                            Pack.getInstance().getUserIdBySid(changedBy)));
+                } catch (IllegalStateException e) {
+                    //System.err.println("Password changes not found");
+                }
+            }
+        }
+    }
+
+    private void processUpdates(Pack pack, String xmlPath) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"41\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/MicrosoftWindowsWindowsUpdateClientOperational.xml");
+        InputSource inputSource = new InputSource(xmlPath);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
         for (int i = 0; i < nodes.getLength(); i++) {
-            Timestamp timestamp = null;
-            String updateTitle = "";
-            boolean toSkip = false;
-
             NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
 
             // TAG EventData
@@ -329,23 +404,65 @@ public class Manager {
             NodeList data = childNodes.item(2).getChildNodes();
 
             // Timestamp
-            timestamp = getTimestampFromXML(childNodes);
+            Timestamp timestamp = getTimestampFromXML(childNodes);
 
             for (int j = 0; j < data.getLength(); j += 2) {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("updateTitle")) {
-                    updateTitle = data.item(j).getTextContent();
+                    String updateTitle = data.item(j).getTextContent();
                     pack.addEvent(new UpdateEvent(timestamp, pack.getComputer().getId(), updateTitle));
                 }
             }
         }
     }
 
-    private void processLogoutEvents(Pack pack) throws XPathExpressionException {
+    private void processWifi(Pack pack, String xmlPath) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        InputSource inputSource = new InputSource(xmlPath);
+
+        // Wifi network connected
+        String wifiConnect = "/Events/Event/System/EventID[text()=\"8001\"]";
+        NodeList wifiConnectNodes = (NodeList) xpath.evaluate(wifiConnect, inputSource, XPathConstants.NODESET);
+
+        // Wifi network disconnected
+        String wifiDisconnected = "/Events/Event/System/EventID[text()=\"8003\"]";
+        NodeList wifiDisconnectNodes = (NodeList) xpath.evaluate(wifiDisconnected, inputSource, XPathConstants.NODESET);
+
+        processEachWifiType(wifiConnectNodes, pack, true);
+        processEachWifiType(wifiDisconnectNodes, pack, false);
+    }
+
+    private void processEachWifiType(NodeList nodes, Pack pack, Boolean isConnect) throws XPathExpressionException {
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Timestamp timestamp = null;
+            String ssid = "";
+
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+            // TAG EventData
+            if (childNodes.item(2) == null) continue;
+            NodeList data = childNodes.item(2).getChildNodes();
+
+            for (int j = 0; j < data.getLength(); j += 2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                if (attributes.item(0).getNodeValue().equals("SSID")) {
+                    ssid = data.item(j).getTextContent();
+                    pack.addEvent(new WifiEvent(timestamp, pack.getComputer().getId(), ssid, isConnect));
+                }
+            }
+        }
+
+    }
+
+    private void processLogoutEvents(Pack pack, String xmlPath) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"4634\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        InputSource inputSource = new InputSource(xmlPath);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
@@ -396,10 +513,10 @@ public class Manager {
         }
     }
 
-    private void processLoginEvents(Pack pack) throws XPathExpressionException {
+    private void processLoginEvents(Pack pack, String xmlPath) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"4624\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
+        InputSource inputSource = new InputSource(xmlPath);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
@@ -450,10 +567,10 @@ public class Manager {
         }
     }
 
-    private void processAppAccessesEvents(Pack pack) throws XPathExpressionException {
+    private void processAppAccessesEvents(Pack pack, String xmlPath) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         String expression = "/Events/Event/System/EventID[text()=\"5950\"]";
-        InputSource inputSource = new InputSource(WORKING_DIR + "/MicrosoftWindowsTWinUIOperational.xml");
+        InputSource inputSource = new InputSource(xmlPath);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
 
@@ -546,73 +663,6 @@ public class Manager {
         }
     }
 
-    private void processPasswordChangesUserEvents(Pack pack) throws XPathExpressionException {
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        InputSource inputSource = new InputSource(WORKING_DIR + "/Security.xml");
-
-        // The Subject attempted to reset the password of the Target
-        String otherUserAttempted = "/Events/Event/System/EventID[text()=\"4724\"]";
-        NodeList otherUserAttemptedNodes = (NodeList) xpath.evaluate(otherUserAttempted, inputSource, XPathConstants.NODESET);
-
-        // The user attempted to change his/her own password
-        String userAttempted = "/Events/Event/System/EventID[text()=\"4723\"]";
-        NodeList userAttemptedNodes = (NodeList) xpath.evaluate(userAttempted, inputSource, XPathConstants.NODESET);
-
-        NodeList allNodes[] = {otherUserAttemptedNodes, userAttemptedNodes};
-
-        for (NodeList eachNode : allNodes) {
-            processEachTypePwdChange(eachNode, pack);
-        }
-    }
-
-    private void processEachTypePwdChange(NodeList nodes, Pack pack) {
-        for (int i = 0; i < nodes.getLength(); i++) {
-            String sid = "";
-            String changedBy = "";
-
-            Timestamp timestamp = null;
-            boolean toSkip = false;
-
-            // TAG Event
-            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
-            if (childNodes.item(2) == null) continue;
-            // TAG EventData
-            NodeList data = childNodes.item(2).getChildNodes();
-            // Timestamp
-            timestamp = getTimestampFromXML(childNodes);
-
-            for (int j = 0; j < data.getLength(); j += 2) {
-                NamedNodeMap attributes = data.item(j).getAttributes();
-
-                // The Subject attempted to reset the password of the Target
-                // So, changeBy Subject User
-                if (attributes.item(0).getNodeValue().equals("TargetSid")) {
-                    if (!(data.item(j).getTextContent().length() > 8)) {
-                        toSkip = true;
-                        break;
-                    }
-                    // Get the SID of the user that password will change
-                    sid = data.item(j).getTextContent();
-                } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
-                    // Get the SID of the user that change password, the Subject
-                    changedBy = data.item(j).getTextContent();
-                }
-            }
-            if (!toSkip) {
-                try {
-                    pack.addEvent(new PasswordChangesUserEvent(
-                            timestamp,
-                            pack.getComputer().getId(),
-                            Pack.getInstance().getUserIdBySid(sid),
-                            sid,
-                            Pack.getInstance().getUserIdBySid(changedBy)));
-                } catch (IllegalStateException e) {
-                    //System.err.println("Password changes not found");
-                }
-            }
-        }
-    }
-
     private class FileExtensionComparator implements Comparator<String> {
 
         @Override
@@ -651,11 +701,11 @@ public class Manager {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserName")) {
-                    if (data.item(j).getTextContent().equals("defaultuser0")) {
+                    /*if (data.item(j).getTextContent().equals("defaultuser0")) {
                         // We shall not reveal god to the mundane people
                         toSkip = true;
                         break;
-                    }
+                    }*/
                     username = data.item(j).getTextContent();
                 } else if (attributes.item(0).getNodeValue().equals("TargetSid")) {
                     int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
@@ -663,12 +713,12 @@ public class Manager {
                 } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
                     int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
 
-                    if (data.item(j).getTextContent().substring(indexOfLastDash + 1).equals("18")) {
+                    /*if (data.item(j).getTextContent().substring(indexOfLastDash + 1).equals("18")) {
                         // God created this account, so with will not reveal that god exists
                         createdBySid = null;
                         createdByUname = null;
                         break;
-                    } else {
+                    } else {*/
 
                         for (User u : userArrayList) {
                             if (u.getUserSid().equals(data.item(j).getTextContent().substring(indexOfLastDash + 1))) {
@@ -679,7 +729,7 @@ public class Manager {
                         }
 
                         createdBySid = data.item(j).getTextContent().substring(indexOfLastDash + 1);
-                    }
+                    //}
                 } else if (attributes.item(0).getNodeValue().equals("SubjectUserName")) {
                     createdByUname = data.item(j).getTextContent();
                 }
