@@ -21,9 +21,10 @@ public class Application {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        System.out.println("Job done!");
     }
 
-    private static class ProcessThread extends Thread {
+    public static class ProcessThread extends Thread {
         private String arg;
 
         ProcessThread(String arg) {
@@ -50,7 +51,7 @@ public class Application {
                         e1.printStackTrace();
                     }
                 }else{
-                    System.out.println("Cya sir!");
+                    System.out.println("Job done!");
                 }
             }
         }

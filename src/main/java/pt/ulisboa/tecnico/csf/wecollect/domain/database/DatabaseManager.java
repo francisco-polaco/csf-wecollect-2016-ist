@@ -1,5 +1,6 @@
 package pt.ulisboa.tecnico.csf.wecollect.domain.database;
 
+import org.apache.commons.dbutils.DbUtils;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Computer;
 import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
 import pt.ulisboa.tecnico.csf.wecollect.domain.User;
@@ -17,6 +18,10 @@ public class DatabaseManager {
 
     private static DatabaseManager mInstance;
 
+    public DatabaseManager() {
+        connection = connectToDB();
+    }
+
     public static DatabaseManager getInstance(){
         if(mInstance == null){
             mInstance = new DatabaseManager();
@@ -27,46 +32,34 @@ public class DatabaseManager {
 
     private Connection connectToDB(){
         if(connection != null) return connection;
+        else {
 //        String username = "root";
-        String username = "wecollect";
+            String username = "wecollect";
 //        String password = "rootroot";
-        String password = "eDVBmspXvnX5u78F";
+            String password = "eDVBmspXvnX5u78F";
 //        String host = "localhost";
-        String host = "lis.pt.bernardocordeiro.eu";
+            String host = "lis.pt.bernardocordeiro.eu";
 
-        String url = "jdbc:mysql://" + host + ":3306/wecollect";
+            String url = "jdbc:mysql://" + host + ":3306/wecollect";
 
-        Properties connectionProps = new Properties();
-        connectionProps.put("user", username);
-        connectionProps.put("password", password);
+            Properties connectionProps = new Properties();
+            connectionProps.put("user", username);
+            connectionProps.put("password", password);
 
-        System.out.println("Connecting database...");
+            System.out.println("Connecting database...");
 
-        Connection localConnection;
+            Connection localConnection;
 
-        try {
-            localConnection = DriverManager.getConnection(url, connectionProps);
-            System.out.println("Database connected!");
-        } catch (SQLException e) {
-            throw new IllegalStateException("Cannot connect the database!", e);
+            try {
+                localConnection = DriverManager.getConnection(url, connectionProps);
+                System.out.println("Database connected!");
+            } catch (SQLException e) {
+                throw new IllegalStateException("Cannot connect the database!", e);
+            }
+            return localConnection;
         }
-        connection = localConnection;
-        return localConnection;
     }
 
-    public void emptyEntries(){
-        Connection connection = connectToDB();
-    }
-
-    public void commitNewLogs(Pack pack){
-        Connection connection = connectToDB();
-        //connection.commit();
-    }
-
-    public void query(String query){
-        Connection connection = connectToDB();
-
-    }
 
     public void commitComputer(Pack pack, boolean force) throws RegistryAlreadyExistsException {
         Connection con = connectToDB();
@@ -78,12 +71,12 @@ public class DatabaseManager {
                 ResultSet resultSet = pstmt.executeQuery();
                 while (resultSet.next()) {
                     if (resultSet.getString("name").equals(computer.getName()) && resultSet.getString("sid").equals(computer.getSid())) {
-                        resultSet.close();
-                        pstmt.close();
+                        DbUtils.close(resultSet);
+                        DbUtils.close(pstmt);
                         throw new RegistryAlreadyExistsException(computer.getName(), computer.getSid());
                     }
                 }
-                resultSet.close();
+                DbUtils.close(resultSet);
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -103,7 +96,7 @@ public class DatabaseManager {
             pstmt.setString(2, computer.getSid());
             ResultSet resultSet = pstmt.executeQuery();
             while(resultSet.next()) computer.setId(resultSet.getInt("id"));
-            resultSet.close();
+            DbUtils.close(resultSet);
         }catch (SQLException e) {
             e.printStackTrace();
         }
@@ -141,7 +134,7 @@ public class DatabaseManager {
                 if(resultSet.next()) {
                     u.setId(resultSet.getInt("id"));
                 }
-                resultSet.close();
+                DbUtils.close(resultSet);
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -295,7 +288,7 @@ public class DatabaseManager {
     public void disconnect(){
         System.out.println("Disconnecting from Database.");
         try {
-            connection.close();
+            DbUtils.close(connection);
         } catch (SQLException e) {
             e.printStackTrace();
         }

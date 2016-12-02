@@ -3,6 +3,7 @@ package pt.ulisboa.tecnico.csf.wecollect.domain;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import pt.ulisboa.tecnico.csf.wecollect.Application;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.*;
 import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
@@ -49,12 +50,13 @@ public class Manager {
             processEvtx(rootPath);
         try {
             getPackReady();
-        } catch (IOException | XPathExpressionException e) {
+        } catch (IOException | XPathExpressionException | IllegalStateException e) {
             e.printStackTrace();
         } finally {
             DatabaseManager.getInstance().disconnect();
+            clearTmp();
         }
-        clearTmp();
+
     }
 
     private void clearTmp() {
