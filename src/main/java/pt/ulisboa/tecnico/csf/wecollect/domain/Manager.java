@@ -43,10 +43,10 @@ public class Manager {
         return mInstance;
     }
 
-    public void process(String rootPath) {
-        _rootFs = rootPath;
+    public void process(String windowsDirPath) {
+        _rootFs = windowsDirPath;
         if (!_force)
-            processEvtx(rootPath);
+            processEvtx(windowsDirPath);
         try {
             getPackReady();
         } catch (IOException | XPathExpressionException | IllegalStateException e) {
@@ -89,7 +89,7 @@ public class Manager {
         System.out.println("Checking working folder.");
         checkWorkingFolder();
 
-        String evtxDirPath = rootFs + "/C/Windows/System32/winevt/Logs";
+        String evtxDirPath = rootFs + "/System32/winevt/Logs";
         ArrayList<File> evtxFiles = prepareAndGetEvtx(evtxDirPath);
 
         for (File file : evtxFiles) {
@@ -614,7 +614,7 @@ public class Manager {
     }
 
     private void processFirewallEvents(Pack pack) {
-        String fwDirPath = _rootFs + "/C/Windows/System32/LogFiles/Firewall";
+        String fwDirPath = _rootFs + "/System32/LogFiles/Firewall";
         ArrayList<File> files = getListOfFiles(fwDirPath);
         files.removeIf(f -> !(f.getName().endsWith(".log") || !f.getName().contains(".log.old")));
         Collections.sort((List) files, new FileExtensionComparator());

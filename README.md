@@ -14,11 +14,12 @@ Check out the new innovative forensic tools that can retrieve events from Window
 This is a client-server architecture, and this is a client, 
 you need to have the server running on your machine or remotely, see +info here.
 
-To execute the program you need to specify the directory of the disk image:
+To execute the program you need to pass the path to the `Windows`
+ directory of the disk image:
 
-`mvn package exec:java -Dexec.args=${IMG_DIR}`
+`mvn package exec:java -Dexec.args=${WINDOWS_DIR_PATH}`
 
 Example:
 
-`IMG_DIR="/Users/username/Downloads/tree"`
+`WINDOWS_DIR_PATH="/Volumes/DiskImg/Windows"`
 
