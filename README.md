@@ -3,6 +3,7 @@ Check out the new innovative forensic tools that can retrieve events from Window
 
 ## Requirements:
 
+- Windows 10 disk image mounted in the system
 - Java SDK 8
 - Maven
 - Python 2

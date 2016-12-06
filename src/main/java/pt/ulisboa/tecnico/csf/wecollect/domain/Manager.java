@@ -232,9 +232,9 @@ public class Manager {
 
     private void getPackReady() throws IOException, XPathExpressionException {
         Pack p = new Pack();
+
         processComputer(p);
         processUsers(p);
-
 
         // Check first if XML files exist. If yes, process each event
 
@@ -342,7 +342,7 @@ public class Manager {
         }
     }
 
-    private void processEachTypePwdChange(NodeList nodes, Pack pack) {
+    private void processEachTypePwdChange(NodeList nodes, Pack pack) throws XPathExpressionException {
         for (int i = 0; i < nodes.getLength(); i++) {
             String sid = "";
             String changedBy = "";
