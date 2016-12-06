@@ -4,6 +4,7 @@ Check out the new innovative forensic tools that can retrieve events from Window
 ## Requirements:
 
 - Windows 10 disk image mounted in the system
+- For MacOS users: you need to be able to read `NTFS`
 - Java SDK 8
 - Maven
 - Python 2
