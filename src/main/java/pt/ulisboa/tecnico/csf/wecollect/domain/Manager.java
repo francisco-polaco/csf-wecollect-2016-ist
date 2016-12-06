@@ -3,7 +3,6 @@ package pt.ulisboa.tecnico.csf.wecollect.domain;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import pt.ulisboa.tecnico.csf.wecollect.Application;
 import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.domain.event.*;
 import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
