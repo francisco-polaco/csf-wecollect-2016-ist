@@ -1,9 +1,10 @@
-# WECollect
+# WECollect - Windows Event Collect
 Check out the new innovative forensic tools that can retrieve events from Windows post-mortem images.
 
 ## Requirements:
 
 - Windows 10 disk image mounted in the system
+(You need to have a raw image of your disk e.g: .VDI to .IMG `VBoxManage clonehd <nameOfOriginalVDI>.vdi <nameOfNewImage>.img --format RAW`)
 - For MacOS users: you need to be able to read `NTFS`
 - Java SDK 8
 - Maven

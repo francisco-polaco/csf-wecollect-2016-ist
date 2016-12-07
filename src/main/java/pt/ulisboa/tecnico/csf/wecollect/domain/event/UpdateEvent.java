@@ -28,6 +28,8 @@ public class UpdateEvent extends Event {
 
     @Override
     public String toString() {
-        return "StartupEvent{} ; " + super.toString();
+        return "UpdateEvent{" +
+                "updateTitle='" + updateTitle + '\'' +
+                '}';
     }
 }

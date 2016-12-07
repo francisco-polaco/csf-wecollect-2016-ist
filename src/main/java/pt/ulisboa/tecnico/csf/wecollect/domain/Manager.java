@@ -174,6 +174,8 @@ public class Manager {
         if (appAccess.exists()) files.add(appAccess);
         File wifi = new File(evtxDirPath + "/Microsoft-Windows-WLAN-AutoConfig%4Operational.evtx");
         if (wifi.exists()) files.add(wifi);
+        File devices = new File(evtxDirPath + "/Microsoft-Windows-DeviceSetupManager%4Admin.evtx");
+        if (devices.exists()) files.add(devices);
 
         for (File f : files) {
             try {
@@ -247,6 +249,9 @@ public class Manager {
 
         File xmlUpdate = new File(WORKING_DIR + "/MicrosoftWindowsWindowsUpdateClientOperational.xml");
         if (xmlUpdate.exists() && !xmlUpdate.isDirectory()) processUpdates(p, xmlUpdate.getPath());
+
+        File xmlDevices = new File(WORKING_DIR + "/MicrosoftWindowsDeviceSetupManagerAdmin.xml");
+        if (xmlDevices.exists() && !xmlDevices.isDirectory()) processDevices(p, xmlDevices.getPath());
 
         File xmlWifi = new File(WORKING_DIR + "/MicrosoftWindowsWLANAutoConfigOperational.xml");
         if (xmlWifi.exists() && !xmlWifi.isDirectory()) processWifi(p, xmlWifi.getPath());
@@ -377,14 +382,10 @@ public class Manager {
             }
             if (!toSkip) {
                 try {
-                    pack.addEvent(new PasswordChangesUserEvent(
-                            timestamp,
-                            pack.getComputer().getId(),
-                            Pack.getInstance().getUserIdBySid(sid),
-                            sid,
+                    pack.addEvent(new PasswordChangesUserEvent(timestamp, pack.getComputer().getId(), Pack.getInstance().getUserIdBySid(sid), sid,
                             Pack.getInstance().getUserIdBySid(changedBy)));
                 } catch (IllegalStateException e) {
-                    //System.err.println("Password changes not found");
+                    System.err.println("PwdChange: User id of this event was not found.");
                 }
             }
         }
@@ -415,6 +416,61 @@ public class Manager {
                     pack.addEvent(new UpdateEvent(timestamp, pack.getComputer().getId(), updateTitle));
                 }
             }
+        }
+    }
+
+    private void processDevices(Pack pack, String xmlPath) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        String expression = "/Events/Event/System/EventID[text()=\"112\"]";
+        InputSource inputSource = new InputSource(xmlPath);
+        NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
+
+        for (int i = 0; i < nodes.getLength(); i++) {
+            String deviceName = "";
+            String containerId = "";
+            int taskCount = 0;
+            int propertyCount = 0;
+            int workTime = 0;
+            Timestamp timestamp = null;
+            boolean toSkip = false;
+
+            // TAG Event
+            NodeList childNodes = nodes.item(i).getParentNode().getParentNode().getChildNodes();
+
+            // TAG EventData
+            if (childNodes.item(2) == null) continue;
+            NodeList data = childNodes.item(2).getChildNodes();
+
+            // Timestamp
+            timestamp = getTimestampFromXML(childNodes);
+
+
+            for (int j = 0; j < data.getLength(); j += 2) {
+                NamedNodeMap attributes = data.item(j).getAttributes();
+
+                if (attributes.item(0).getNodeValue().equals("Prop_DeviceName")) {
+                    if ((data.item(j).getTextContent().equals("NULL"))) {
+                        toSkip = true;
+                        break;
+                    }
+                    deviceName = data.item(j).getTextContent();
+                } else if (attributes.item(0).getNodeValue().equals("Prop_ContainerId")) {
+                    if ((data.item(j).getTextContent().equals("{00000000-0000-0000-ffff-ffffffffffff}"))) {
+                        toSkip = true;
+                        break;
+                    }
+                    containerId = data.item(j).getTextContent().replace("{", "").replace("}", "");
+                } else if (attributes.item(0).getNodeValue().equals("Prop_TaskCount")) {
+                    taskCount = Integer.parseInt(data.item(j).getTextContent());
+                } else if (attributes.item(0).getNodeValue().equals("Prop_PropertyCount")) {
+                    propertyCount = Integer.parseInt(data.item(j).getTextContent());
+                } else if (attributes.item(0).getNodeValue().equals("Prop_WorkTime_MilliSeconds")) {
+                    workTime = Integer.parseInt(data.item(j).getTextContent());
+                }
+
+            }
+            if (!toSkip)
+                pack.addEvent(new DeviceEvent(timestamp, pack.getComputer().getId(), deviceName, containerId, taskCount, propertyCount, workTime));
         }
     }
 
@@ -462,7 +518,7 @@ public class Manager {
 
     private void processLogoutEvents(Pack pack, String xmlPath) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
-        String expression = "/Events/Event/System/EventID[text()=\"4634\"]";
+        String expression = "/Events/Event/System/EventID[text()=\"4647\"]";
         InputSource inputSource = new InputSource(xmlPath);
         NodeList nodes = (NodeList) xpath.evaluate(expression, inputSource, XPathConstants.NODESET);
 
@@ -497,17 +553,16 @@ public class Manager {
                     sid = data.item(j).getTextContent();
                 } else if (attributes.item(0).getNodeValue().equals("TargetLogonId")) {
                     logonId = data.item(j).getTextContent();
-                } else if (attributes.item(0).getNodeValue().equals("LogonType")) {
-                    loginType = data.item(j).getTextContent();
                 }
 
             }
             if (!toSkip) {
                 try {
+                    loginType = "2";
                     pack.addEvent(new LogoutUserEvent(timestamp, pack.getComputer().getId(), Pack.getInstance().getUserIdBySid(sid), sid,
                             new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
                 } catch (IllegalStateException e) {
-                    //System.err.println("User id of this logout event was not found.");
+                    System.err.println("LogoutEvents: User id of this event was not found.");
                 }
             }
 
@@ -562,7 +617,7 @@ public class Manager {
                             new BigInteger(logonId.substring(2), 16).longValue(), Short.parseShort(loginType)));
 
                 } catch (IllegalStateException e) {
-                    //System.err.println("User id of this login event was not found.");
+                    System.err.println("LoginEvents: User id of this event was not found.");
                 }
             }
         }
@@ -607,7 +662,7 @@ public class Manager {
                         appId ));
 
             } catch (IllegalStateException e) {
-                //System.err.println("User id of this login event was not found.");
+                System.err.println("AppAccessesEvents: User id of this event was not found.");
             }
 
         }
@@ -649,14 +704,8 @@ public class Manager {
                     }
                     Timestamp timestamp = new java.sql.Timestamp(parsedDate.getTime());
 
-
-                    try {
-                        pack.addEvent(new FirewallEvent(timestamp, pack.getComputer().getId(), allow, tokens[3], tokens[4], tokens[5],
+                    pack.addEvent(new FirewallEvent(timestamp, pack.getComputer().getId(), allow, tokens[3], tokens[4], tokens[5],
                                 Integer.parseInt(tokens[6]), Integer.parseInt(tokens[7])));
-                    } catch (IllegalArgumentException e) {
-                        continue; // skip this one
-                    }
-
                 }
             }
         } catch (IOException e) {
