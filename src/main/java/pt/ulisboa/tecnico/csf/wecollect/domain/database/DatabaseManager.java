@@ -33,11 +33,8 @@ public class DatabaseManager {
     private Connection connectToDB(){
         if(connection != null) return connection;
         else {
-//        String username = "root";
             String username = "wecollect";
-//        String password = "rootroot";
             String password = "eDVBmspXvnX5u78F";
-//        String host = "localhost";
             String host = "lis.pt.bernardocordeiro.eu";
 
             String url = "jdbc:mysql://" + host + ":3306/wecollect";

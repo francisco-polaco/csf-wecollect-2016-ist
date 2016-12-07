@@ -45,20 +45,18 @@ public class Manager {
 
     public void process(String windowsDirPath) {
         _rootFs = windowsDirPath;
-        if (!_force)
+        if (!_force) {
             processEvtx(windowsDirPath);
+        }
+
         try {
             getPackReady();
         } catch (IOException | XPathExpressionException | IllegalStateException e) {
             e.printStackTrace();
-        } finally {
-            DatabaseManager.getInstance().disconnect();
-            clearTmp();
         }
-
     }
 
-    private void clearTmp() {
+    public static void clearTmp() {
         try {
             Files.deleteIfExists(Paths.get(WORKING_DIR));
         } catch (DirectoryNotEmptyException e) {
@@ -72,7 +70,7 @@ public class Manager {
                 }
             }
             boolean delete = wdir.delete();
-            if (!delete) System.err.println("WDIr not deleted.");
+            if (!delete) System.err.println("Working Directory not deleted.");
         } catch (IOException e) {
             e.printStackTrace();
         }

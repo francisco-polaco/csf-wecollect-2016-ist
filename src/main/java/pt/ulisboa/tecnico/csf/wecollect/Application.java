@@ -1,6 +1,8 @@
 package pt.ulisboa.tecnico.csf.wecollect;
 
 
+import pt.ulisboa.tecnico.csf.wecollect.domain.Manager;
+import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
 import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
 import pt.ulisboa.tecnico.csf.wecollect.service.ProcessEvtxService;
 
@@ -21,7 +23,12 @@ public class Application {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        // Terminate the program
+        DatabaseManager.getInstance().disconnect();
+        Manager.clearTmp();
         System.out.println("Job done!");
+        System.exit(0);
     }
 
     public static class ProcessThread extends Thread {
@@ -41,6 +48,7 @@ public class Application {
                 System.out.println("Do you want to force analysis? [y/n]");
                 Scanner scanner = new Scanner(System.in);
                 String line = scanner.nextLine().toLowerCase();
+
                 if(line.equals("y")){
                     System.out.println("Forcing...");
                     ProcessThread pt2 = new ProcessThread(arg);
@@ -50,8 +58,6 @@ public class Application {
                     } catch (InterruptedException e1) {
                         e1.printStackTrace();
                     }
-                }else{
-                    System.out.println("Job done!");
                 }
             }
         }
