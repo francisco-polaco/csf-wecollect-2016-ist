@@ -7,8 +7,8 @@ Check out the new innovative forensic tools that can retrieve events from Window
 (You need to have a raw image of your disk e.g: .VDI to .IMG `VBoxManage clonehd <nameOfOriginalVDI>.vdi <nameOfNewImage>.img --format RAW`)
 - For MacOS users: you need to be able to read `NTFS`
 - Java SDK 8
-- Maven
-- Python 2
+- Maven 3.3
+- Python 2.7
 - `python-evtx` - `pip install python-evtx`
 
 ## Running:
