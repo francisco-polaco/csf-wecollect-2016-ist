@@ -35,9 +35,9 @@ public class DatabaseManager {
         else {
             String username = "wecollect";
             String password = "eDVBmspXvnX5u78F";
-            String host = "lis.pt.bernardocordeiro.eu";
+            String host = "lis.pt.bernardocordeiro.eu:3306";
 
-            String url = "jdbc:mysql://" + host + ":3306/wecollect";
+            String url = "jdbc:mysql://" + host + "/wecollect";
 
             Properties connectionProps = new Properties();
             connectionProps.put("user", username);
@@ -260,7 +260,7 @@ public class DatabaseManager {
         // Check if it is wifi connect or disconnect
         if (wifiEvent.getConnect()) {
             // If Wifi event is a connection to a Access Point
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO wificonnects (timestamp, computer_id, name) VALUES (?, ?, ?);")){
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO wificonnects (timestamp, computer_id, ssid) VALUES (?, ?, ?);")){
                 pstmt.setTimestamp(1, wifiEvent.getTimestamp());
                 pstmt.setInt(2, wifiEvent.getComputerId());
                 pstmt.setString(3, wifiEvent.getSsid());
@@ -270,7 +270,7 @@ public class DatabaseManager {
             }
         } else {
             // If Wifi event is a disconnection to a Access Point
-            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO wifidisconnects (timestamp, computer_id, name) VALUES (?, ?, ?);")){
+            try (PreparedStatement pstmt = conn.prepareStatement("INSERT INTO wifidisconnects (timestamp, computer_id, ssid) VALUES (?, ?, ?);")){
                 pstmt.setTimestamp(1, wifiEvent.getTimestamp());
                 pstmt.setInt(2, wifiEvent.getComputerId());
                 pstmt.setString(3, wifiEvent.getSsid());
