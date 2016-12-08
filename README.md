@@ -19,7 +19,13 @@ you need to have the server running on your machine or remotely, see +info here.
 To execute the program you need to pass the path to the `Windows`
  directory of the disk image:
 
-`mvn package exec:java -Dexec.args=${WINDOWS_DIR_PATH}`
+`mvn package exec:java -Dexec.args="-windir ${WINDOWS_DIR_PATH}"`
+
+To execute the program with custom database parameters:
+
+`mvn package exec:java -Dexec.args="-windir ${WINDOWS_DIR_PATH} [-h hostname] [-u username] [-p password]"`
+
+If you don't specify the password, the program will ask you to insert later on, without show on the screen what are you typing.
 
 Example:
 
