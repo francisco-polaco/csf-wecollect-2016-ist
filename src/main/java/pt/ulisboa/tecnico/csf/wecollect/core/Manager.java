@@ -1,10 +1,10 @@
-package pt.ulisboa.tecnico.csf.wecollect.domain;
+package pt.ulisboa.tecnico.csf.wecollect.core;
 
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
-import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.*;
+import pt.ulisboa.tecnico.csf.wecollect.core.database.DatabaseManager;
+import pt.ulisboa.tecnico.csf.wecollect.core.event.*;
 import pt.ulisboa.tecnico.csf.wecollect.exception.DirectoryWithoutFilesException;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToCreateWorkingDirException;
 import pt.ulisboa.tecnico.csf.wecollect.exception.ImpossibleToRunPythonException;
@@ -56,7 +56,7 @@ public class Manager {
         }
     }
 
-    public static void clearTmp() {
+    public void clearTmp() {
         try {
             Files.deleteIfExists(Paths.get(WORKING_DIR));
         } catch (DirectoryNotEmptyException e) {

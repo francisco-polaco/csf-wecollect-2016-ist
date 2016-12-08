@@ -1,10 +1,10 @@
-package pt.ulisboa.tecnico.csf.wecollect.domain.database;
+package pt.ulisboa.tecnico.csf.wecollect.core.database;
 
 import org.apache.commons.dbutils.DbUtils;
-import pt.ulisboa.tecnico.csf.wecollect.domain.Computer;
-import pt.ulisboa.tecnico.csf.wecollect.domain.Pack;
-import pt.ulisboa.tecnico.csf.wecollect.domain.User;
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.*;
+import pt.ulisboa.tecnico.csf.wecollect.core.Computer;
+import pt.ulisboa.tecnico.csf.wecollect.core.Pack;
+import pt.ulisboa.tecnico.csf.wecollect.core.User;
+import pt.ulisboa.tecnico.csf.wecollect.core.event.*;
 import pt.ulisboa.tecnico.csf.wecollect.exception.RegistryAlreadyExistsException;
 
 import java.sql.*;
@@ -13,6 +13,10 @@ import java.util.Properties;
 
 
 public class DatabaseManager {
+
+    public static String username = "wecollect";
+    public static String password = "eDVBmspXvnX5u78F";
+    public static String hostname = "lis.pt.bernardocordeiro.eu";
 
     private Connection connection = null;
 
@@ -33,11 +37,10 @@ public class DatabaseManager {
     private Connection connectToDB(){
         if(connection != null) return connection;
         else {
-            String username = "wecollect";
-            String password = "eDVBmspXvnX5u78F";
-            String host = "lis.pt.bernardocordeiro.eu:3306";
 
-            String url = "jdbc:mysql://" + host + "/wecollect";
+            String url;
+            if(hostname.contains(":")) url = "jdbc:mysql://" + hostname + "/wecollect";
+            else url = "jdbc:mysql://" + hostname + ":3306/wecollect";
 
             Properties connectionProps = new Properties();
             connectionProps.put("user", username);

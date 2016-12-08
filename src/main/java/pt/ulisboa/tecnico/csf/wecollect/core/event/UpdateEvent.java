@@ -1,6 +1,6 @@
-package pt.ulisboa.tecnico.csf.wecollect.domain.event;
+package pt.ulisboa.tecnico.csf.wecollect.core.event;
 
-import pt.ulisboa.tecnico.csf.wecollect.domain.database.DatabaseManager;
+import pt.ulisboa.tecnico.csf.wecollect.core.database.DatabaseManager;
 
 import java.sql.Timestamp;
 

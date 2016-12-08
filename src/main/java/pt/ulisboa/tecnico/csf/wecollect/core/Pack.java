@@ -1,6 +1,6 @@
-package pt.ulisboa.tecnico.csf.wecollect.domain;
+package pt.ulisboa.tecnico.csf.wecollect.core;
 
-import pt.ulisboa.tecnico.csf.wecollect.domain.event.Event;
+import pt.ulisboa.tecnico.csf.wecollect.core.event.Event;
 
 import java.util.ArrayList;
 

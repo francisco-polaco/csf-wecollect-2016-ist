@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.csf.wecollect.domain.event;
+package pt.ulisboa.tecnico.csf.wecollect.core.event;
 
 import java.sql.Timestamp;
 
