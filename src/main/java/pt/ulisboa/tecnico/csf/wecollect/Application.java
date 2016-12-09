@@ -21,24 +21,18 @@ public class Application {
         }
 
         String winDir;
-        if(isParameterValid(params, "windir")){
+        if (isParameterValid(params, "windir") &&
+                isParameterValid(params, "h") &&
+                isParameterValid(params, "u") &&
+                isParameterValid(params, "p")
+                ) {
             winDir = params.get("windir").get(0);
-        }else {
+            DatabaseManager.hostname = params.get("h").get(0);
+            DatabaseManager.username = params.get("u").get(0);
+            DatabaseManager.password = params.get("p").get(0);
+        } else {
             System.err.println(new ArgumentException().getMessage());
             return;
-        }
-
-        if(isParameterValid(params, "h")){
-            DatabaseManager.hostname = params.get("h").get(0);
-            if(isParameterValid(params, "u")){
-                DatabaseManager.username = params.get("u").get(0);
-
-                if(isParameterValid(params, "p")) DatabaseManager.password = params.get("p").get(0);
-                else DatabaseManager.password = new String(System.console().readPassword("Password: "));
-            }else {
-                System.err.println("When you specify a hostname, you should also specify username and password.");
-                return;
-            }
         }
 
         ProcessThread pt = new ProcessThread(winDir);
@@ -76,7 +70,7 @@ public class Application {
         return params;
     }
 
-    private static boolean isParameterValid(Map<String, List<String>> params, String parameter){
+    private static boolean isParameterValid(Map<String, List<String>> params, String parameter) {
         return params.get(parameter) != null && params.get(parameter).size() == 1;
     }
 
@@ -89,16 +83,16 @@ public class Application {
 
 
         @Override
-        public void run(){
+        public void run() {
             try {
                 Manager.getInstance().process(arg);
-            }catch (RegistryAlreadyExistsException e){
+            } catch (RegistryAlreadyExistsException e) {
                 System.out.println(e.getMessage());
                 System.out.println("Do you want to force analysis? [y/n]");
                 Scanner scanner = new Scanner(System.in);
                 String line = scanner.nextLine().toLowerCase();
 
-                if(line.equals("y")){
+                if (line.equals("y")) {
                     System.out.println("Forcing...");
                     ProcessThread pt2 = new ProcessThread(arg);
                     pt2.start();

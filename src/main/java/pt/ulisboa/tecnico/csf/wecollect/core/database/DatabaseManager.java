@@ -14,10 +14,6 @@ import java.util.Properties;
 
 public class DatabaseManager {
 
-    public static String username = "wecollect";
-    public static String password = "eDVBmspXvnX5u78F";
-    public static String hostname = "lis.pt.bernardocordeiro.eu";
-
     private Connection connection = null;
 
     private static DatabaseManager mInstance;
@@ -33,6 +29,9 @@ public class DatabaseManager {
         return mInstance;
     }
 
+    public static String username;
+    public static String password;
+    public static String hostname;
 
     private Connection connectToDB(){
         if(connection != null) return connection;
