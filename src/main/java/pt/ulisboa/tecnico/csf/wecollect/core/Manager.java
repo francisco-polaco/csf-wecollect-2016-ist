@@ -94,11 +94,11 @@ public class Manager {
             Process p;
             try {
                 System.out.println("Processing file: " + file.getAbsolutePath());
-                p = Runtime.getRuntime().exec("python2 extras/evtxdump.pyc " + file.getAbsolutePath());
+                p = Runtime.getRuntime().exec("python2 src/resources/evtxdump.pyc " + file.getAbsolutePath());
             } catch (IOException e) {
                 try {
                     // If user 'python' alias instead of 'python2'. Depending on the installation
-                    p = Runtime.getRuntime().exec("python extras/evtxdump.pyc " + file.getAbsolutePath());
+                    p = Runtime.getRuntime().exec("python src/resources/evtxdump.pyc " + file.getAbsolutePath());
                 } catch (IOException e2) {
                     e2.printStackTrace();
                     throw new ImpossibleToRunPythonException(e2.getMessage());
