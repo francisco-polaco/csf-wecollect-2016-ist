@@ -25,7 +25,7 @@ java wecollect -windir <windows directory> -h <hostname> -u <username> -p <passw
 To execute the program you need to pass this arguments:
 
 
-`-windir` : the path to the `Windows' directory of the disk image (e.g: /Volumes/DiskImg/Windows)
+`-windir` : the path to the <b>Windows</b> directory of the disk image (e.g: /Volumes/DiskImg/Windows)
 
 To access the database your need to specify:
 
