@@ -17,7 +17,7 @@ you need to have the server running on your machine or remotely, see +info here.
 ## Usage:
 
 ```
-wecollect [-windir windows directory] [-h hostname] [-u username] [-p password]
+java wecollect -windir <windows directory> -h <hostname> -u <username> -p <password>
 ```
 
 ### Arguments:
@@ -25,7 +25,7 @@ wecollect [-windir windows directory] [-h hostname] [-u username] [-p password]
 To execute the program you need to pass this arguments:
 
 
-`-windir` : the path to the 'Windows' directory of the disk image (e.g: /Volumes/DiskImg/Windows)
+`-windir` : the path to the `Windows' directory of the disk image (e.g: /Volumes/DiskImg/Windows)
 
 To access the database your need to specify:
 
