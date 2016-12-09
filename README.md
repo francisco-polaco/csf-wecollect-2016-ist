@@ -32,5 +32,4 @@ To access the database your need to specify:
 `-h` : hostname
 
 `-u` : username
-
 `-p` : password
