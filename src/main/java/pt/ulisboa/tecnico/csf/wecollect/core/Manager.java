@@ -138,20 +138,6 @@ public class Manager {
                 String xmlIdent = xmlIdent(line);
                 pw.write(xmlIdent + line + "\n");
             }
-
-            /*if(hadErrorOccur) {
-                // Just to print the errors from python
-                System.err.println("ERROR: Running Python Script!");
-                try(BufferedReader inErr = new BufferedReader(
-                        new InputStreamReader(p.getErrorStream()))) {
-                    String lineErr;
-                    while((lineErr = inErr.readLine()) != null){
-                        System.err.println(lineErr);
-                    }
-                }catch (IOException e){
-                    e.printStackTrace();
-                }
-            }*/
             pw.close();
 
         } catch (IOException e) {
@@ -749,11 +735,11 @@ public class Manager {
                 NamedNodeMap attributes = data.item(j).getAttributes();
 
                 if (attributes.item(0).getNodeValue().equals("TargetUserName")) {
-                    /*if (data.item(j).getTextContent().equals("defaultuser0")) {
+                    if (data.item(j).getTextContent().equals("defaultuser0")) {
                         // We shall not reveal god to the mundane people
                         toSkip = true;
                         break;
-                    }*/
+                    }
                     username = data.item(j).getTextContent();
                 } else if (attributes.item(0).getNodeValue().equals("TargetSid")) {
                     int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
@@ -761,12 +747,12 @@ public class Manager {
                 } else if (attributes.item(0).getNodeValue().equals("SubjectUserSid")) {
                     int indexOfLastDash = data.item(j).getTextContent().lastIndexOf("-");
 
-                    /*if (data.item(j).getTextContent().substring(indexOfLastDash + 1).equals("18")) {
+                    if (data.item(j).getTextContent().substring(indexOfLastDash + 1).equals("18")) {
                         // God created this account, so with will not reveal that god exists
                         createdBySid = null;
                         createdByUname = null;
                         break;
-                    } else {*/
+                    } else {
 
                         for (User u : userArrayList) {
                             if (u.getUserSid().equals(data.item(j).getTextContent().substring(indexOfLastDash + 1))) {
@@ -777,7 +763,7 @@ public class Manager {
                         }
 
                         createdBySid = data.item(j).getTextContent().substring(indexOfLastDash + 1);
-                    //}
+                    }
                 } else if (attributes.item(0).getNodeValue().equals("SubjectUserName")) {
                     createdByUname = data.item(j).getTextContent();
                 }
